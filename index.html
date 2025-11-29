@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>AI-Smart Pay</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -30,6 +30,10 @@
             },
             fontFamily: {
               sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+            },
+            spacing: {
+              'safe-top': 'env(safe-area-inset-top)',
+              'safe-bottom': 'env(safe-area-inset-bottom)',
             }
           }
         }
@@ -40,10 +44,13 @@
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         display: flex;
         justify-content: center;
-        align-items: center;
+        align-items: flex-start; /* Changed from center to top align for mobile */
         min-height: 100vh;
         margin: 0;
         font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        /* Handle iOS Safe Areas */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
       }
       /* Hide scrollbar for Chrome, Safari and Opera */
       .no-scrollbar::-webkit-scrollbar {
@@ -67,6 +74,7 @@
 </script>
 </head>
   <body>
-    <div id="root" class="w-full h-full sm:h-[844px] sm:w-[390px] bg-white sm:rounded-[3rem] overflow-hidden relative shadow-2xl border-4 border-gray-900/10"></div>
+    <!-- Removed fixed width/height/border classes to allow full screen on native devices -->
+    <div id="root" class="w-full h-full min-h-[100vh] bg-white relative overflow-hidden"></div>
   </body>
 </html>
