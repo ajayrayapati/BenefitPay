@@ -1,3 +1,4 @@
+
 import { CreditCard } from '../types';
 
 const STORAGE_KEY = 'ai_smart_pay_db';
@@ -42,6 +43,23 @@ export const CardRepository = {
     CardRepository.save(cards);
     return cards;
   },
+
+  updateCard: (updatedCard: CreditCard) => {
+    const cards = CardRepository.load();
+    const index = cards.findIndex(c => c.id === updatedCard.id);
+    if (index !== -1) {
+      cards[index] = updatedCard;
+      CardRepository.save(cards);
+    }
+    return cards;
+  },
+
+  deleteCard: (cardId: string) => {
+    const cards = CardRepository.load();
+    const newCards = cards.filter(c => c.id !== cardId);
+    CardRepository.save(newCards);
+    return newCards;
+  },
   
   // Potential helper to "upload" a document to a card
   addDocumentToCard: (cardId: string, doc: any) => {
@@ -53,5 +71,36 @@ export const CardRepository = {
       CardRepository.save(cards);
     }
     return cards;
+  },
+
+  // --- Backup / Restore Features ---
+
+  exportData: (): string => {
+    try {
+      const data = localStorage.getItem(STORAGE_KEY);
+      return data || '';
+    } catch (e) {
+      return '';
+    }
+  },
+
+  importData: (jsonString: string): CreditCard[] | null => {
+    try {
+      const db: CardDatabase = JSON.parse(jsonString);
+      if (db && Array.isArray(db.cards)) {
+        // Basic validation passed
+        CardRepository.save(db.cards);
+        return db.cards;
+      }
+      return null;
+    } catch (e) {
+      console.error("Import failed", e);
+      return null;
+    }
+  },
+
+  clearAll: () => {
+    localStorage.removeItem(STORAGE_KEY);
+    return [];
   }
 };

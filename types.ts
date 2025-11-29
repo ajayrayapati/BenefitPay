@@ -1,3 +1,4 @@
+
 export enum CardType {
   VISA = 'VISA',
   MASTERCARD = 'MASTERCARD',
@@ -39,6 +40,9 @@ export interface CreditCard {
   // Manual / Custom Data
   manualDetails?: string; // Large text block for pasted policies/warranties
   documents?: CardDocument[]; // List of attached files (metadata)
+  
+  // Metadata
+  lastRefreshed?: string; // ISO Date string
 }
 
 export interface RecommendationResult {
