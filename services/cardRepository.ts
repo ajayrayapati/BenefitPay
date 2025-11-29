@@ -1,106 +1,144 @@
 
 import { CreditCard } from '../types';
 
-const STORAGE_KEY = 'ai_smart_pay_db';
+const DB_NAME = 'AISmartPayDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'cards';
 
-interface CardDatabase {
-  version: number;
-  cards: CreditCard[];
-  lastUpdated: string;
-}
-
-// Simulates a persistent "Folder" / Database within the app
+// IndexedDB Helper
 export const CardRepository = {
-  load: (): CreditCard[] => {
-    try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      if (data) {
-        const db: CardDatabase = JSON.parse(data);
-        return db.cards || [];
+  getDB: (): Promise<IDBDatabase> => {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) {
+        reject("IndexedDB not supported");
+        return;
       }
-    } catch (e) {
-      console.error("Failed to load card repository", e);
-    }
-    return [];
-  },
-
-  save: (cards: CreditCard[]) => {
-    try {
-      const db: CardDatabase = {
-        version: 1,
-        cards: cards,
-        lastUpdated: new Date().toISOString()
+      const request = window.indexedDB.open(DB_NAME, DB_VERSION);
+      
+      request.onerror = (event) => {
+        console.error("Database error:", (event.target as any).error);
+        reject("Error opening DB");
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+      
+      request.onsuccess = (event) => {
+        resolve((event.target as IDBOpenDBRequest).result);
+      };
+      
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          // Create the object store with 'id' as the key path
+          db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        }
+      };
+    });
+  },
+
+  getAll: async (): Promise<CreditCard[]> => {
+    try {
+      const db = await CardRepository.getDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.getAll();
+        
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject("Error fetching cards");
+      });
     } catch (e) {
-      console.error("Failed to save card repository", e);
+      console.error(e);
+      return [];
     }
   },
 
-  addCard: (card: CreditCard) => {
-    const cards = CardRepository.load();
-    cards.push(card);
-    CardRepository.save(cards);
-    return cards;
-  },
-
-  updateCard: (updatedCard: CreditCard) => {
-    const cards = CardRepository.load();
-    const index = cards.findIndex(c => c.id === updatedCard.id);
-    if (index !== -1) {
-      cards[index] = updatedCard;
-      CardRepository.save(cards);
-    }
-    return cards;
-  },
-
-  deleteCard: (cardId: string) => {
-    const cards = CardRepository.load();
-    const newCards = cards.filter(c => c.id !== cardId);
-    CardRepository.save(newCards);
-    return newCards;
+  addCard: async (card: CreditCard): Promise<void> => {
+    const db = await CardRepository.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const request = store.add(card);
+      
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject("Error adding card");
+    });
   },
   
-  // Potential helper to "upload" a document to a card
-  addDocumentToCard: (cardId: string, doc: any) => {
-    const cards = CardRepository.load();
-    const card = cards.find(c => c.id === cardId);
-    if (card) {
-      if (!card.documents) card.documents = [];
-      card.documents.push(doc);
-      CardRepository.save(cards);
-    }
-    return cards;
+  updateCard: async (card: CreditCard): Promise<void> => {
+    const db = await CardRepository.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const request = store.put(card); // 'put' updates if key exists, inserts if not
+      
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject("Error updating card");
+    });
   },
 
-  // --- Backup / Restore Features ---
-
-  exportData: (): string => {
+  deleteCard: async (id: string): Promise<void> => {
+    const db = await CardRepository.getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const request = store.delete(id);
+      
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject("Error deleting card");
+    });
+  },
+  
+  // Backup: Export entire DB to JSON string
+  exportData: async (): Promise<string> => {
     try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      return data || '';
-    } catch (e) {
-      return '';
+        const cards = await CardRepository.getAll();
+        return JSON.stringify({
+            version: DB_VERSION,
+            cards,
+            lastUpdated: new Date().toISOString()
+        });
+    } catch(e) {
+        console.error("Export failed", e);
+        return ''; 
     }
   },
-
-  importData: (jsonString: string): CreditCard[] | null => {
-    try {
-      const db: CardDatabase = JSON.parse(jsonString);
-      if (db && Array.isArray(db.cards)) {
-        // Basic validation passed
-        CardRepository.save(db.cards);
-        return db.cards;
+  
+  // Restore: Import JSON string into DB
+  importData: async (jsonString: string): Promise<boolean> => {
+      try {
+          const data = JSON.parse(jsonString);
+          if(data && Array.isArray(data.cards)) {
+              const db = await CardRepository.getDB();
+              return new Promise((resolve) => {
+                  const tx = db.transaction(STORE_NAME, 'readwrite');
+                  const store = tx.objectStore(STORE_NAME);
+                  
+                  // Clear existing data before import? 
+                  // Let's assume restore overwrites/merges. For safety, let's clear.
+                  store.clear();
+                  
+                  data.cards.forEach((card: CreditCard) => {
+                      store.add(card);
+                  });
+                  
+                  tx.oncomplete = () => resolve(true);
+                  tx.onerror = () => resolve(false);
+              });
+          }
+          return false;
+      } catch (e) {
+          console.error("Import failed", e);
+          return false;
       }
-      return null;
-    } catch (e) {
-      console.error("Import failed", e);
-      return null;
-    }
   },
 
-  clearAll: () => {
-    localStorage.removeItem(STORAGE_KEY);
-    return [];
+  clearAll: async (): Promise<void> => {
+      const db = await CardRepository.getDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        store.clear();
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject("Error clearing DB");
+      });
   }
 };

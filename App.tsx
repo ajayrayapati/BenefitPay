@@ -7,33 +7,52 @@ import { CreditCardView } from './components/CreditCardView';
 import { TabBar } from './components/TabBar';
 import { Button } from './components/Button';
 
+// Helper to read file as Base64 for storage
+const readFileAsBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
 export default function App() {
   const [view, setView] = useState<AppView>(AppView.WALLET);
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [selectedCard, setSelectedCard] = useState<CreditCard | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [isLoadingDB, setIsLoadingDB] = useState(true);
   
-  // Load from Repository (Persistent Storage)
+  // Load from IndexedDB on startup
   useEffect(() => {
-    setCards(CardRepository.load());
+    const init = async () => {
+      const data = await CardRepository.getAll();
+      setCards(data);
+      setIsLoadingDB(false);
+    };
+    init();
   }, []);
 
-  const addCard = (newCard: CreditCard) => {
-    const updatedCards = CardRepository.addCard(newCard);
+  const addCard = async (newCard: CreditCard) => {
+    await CardRepository.addCard(newCard);
+    const updatedCards = await CardRepository.getAll();
     setCards(updatedCards);
     setView(AppView.WALLET);
   };
 
-  const handleUpdateCard = (updatedCard: CreditCard) => {
-    const updatedList = CardRepository.updateCard(updatedCard);
-    setCards(updatedList);
-    setSelectedCard(updatedCard); // Update the modal view to show changes immediately
+  const handleUpdateCard = async (updatedCard: CreditCard) => {
+    await CardRepository.updateCard(updatedCard);
+    const updatedCards = await CardRepository.getAll();
+    setCards(updatedCards);
+    setSelectedCard(updatedCard); 
   };
 
-  const handleDeleteCard = (cardId: string) => {
-    const updatedList = CardRepository.deleteCard(cardId);
-    setCards(updatedList);
-    setSelectedCard(null); // Close modal
+  const handleDeleteCard = async (cardId: string) => {
+    await CardRepository.deleteCard(cardId);
+    const updatedCards = await CardRepository.getAll();
+    setCards(updatedCards);
+    setSelectedCard(null); 
   };
 
   // --- Data Management Handlers ---
@@ -41,12 +60,13 @@ export default function App() {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const content = event.target?.result as string;
-        const restoredCards = CardRepository.importData(content);
-        if (restoredCards) {
+        const success = await CardRepository.importData(content);
+        if (success) {
+          const restoredCards = await CardRepository.getAll();
           setCards(restoredCards);
-          alert("Data restored successfully!");
+          alert("Data restored from backup successfully!");
           setShowSettings(false);
         } else {
           alert("Invalid backup file.");
@@ -56,8 +76,8 @@ export default function App() {
     }
   };
 
-  const handleExport = () => {
-    const data = CardRepository.exportData();
+  const handleExport = async () => {
+    const data = await CardRepository.exportData();
     if (!data) {
       alert("No data to export.");
       return;
@@ -72,13 +92,24 @@ export default function App() {
     document.body.removeChild(a);
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     if (confirm("Are you sure? This will delete all your cards permanently.")) {
-      const empty = CardRepository.clearAll();
-      setCards(empty);
+      await CardRepository.clearAll();
+      setCards([]);
       setShowSettings(false);
     }
   };
+
+  if (isLoadingDB) {
+    return (
+      <div className="flex items-center justify-center h-full bg-slate-900 text-white">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mb-4"></div>
+          <p className="text-sm font-medium animate-pulse">Loading Secure Database...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-br from-gray-50 via-white to-blue-50 relative font-sans text-gray-900">
@@ -118,18 +149,18 @@ export default function App() {
 
               <div className="space-y-6">
                  <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Data Backup</h3>
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Database Management</h3>
                     
                     <div className="grid grid-cols-2 gap-3">
                        <button onClick={handleExport} className="flex flex-col items-center justify-center p-4 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-colors active:scale-95">
                           <svg className="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                          <span className="text-xs font-bold">Download</span>
+                          <span className="text-xs font-bold">Export DB</span>
                        </button>
 
                        <label className="flex flex-col items-center justify-center p-4 bg-gray-50 text-gray-700 rounded-2xl hover:bg-gray-100 transition-colors cursor-pointer active:scale-95">
                           <input type="file" accept=".json" onChange={handleImport} className="hidden" />
                           <svg className="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                          <span className="text-xs font-bold">Restore</span>
+                          <span className="text-xs font-bold">Restore DB</span>
                        </label>
                     </div>
                  </div>
@@ -139,6 +170,11 @@ export default function App() {
                        Reset App & Clear All Data
                     </button>
                  </div>
+                 
+                 <p className="text-[10px] text-center text-gray-400">
+                   Data is stored in your browser's IndexedDB. 
+                   Clearing browser cache may remove this data.
+                 </p>
               </div>
            </div>
         </div>
@@ -218,6 +254,7 @@ const CardDetailModal: React.FC<{
   const [isEditing, setIsEditing] = useState(false);
   const [manualText, setManualText] = useState(card.manualDetails || '');
   const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -244,14 +281,21 @@ const CardDetailModal: React.FC<{
     }
   };
 
-  const handleSaveEdits = () => {
-    // Process new files
-    const newDocs: CardDocument[] = newFiles.map(f => ({
-      id: crypto.randomUUID(),
-      name: f.name,
-      type: f.type.includes('pdf') ? 'pdf' : 'text',
-      dateAdded: new Date().toISOString()
-    }));
+  const handleSaveEdits = async () => {
+    setIsSavingEdit(true);
+    
+    // Process new files into Base64 for DB storage
+    const newDocs: CardDocument[] = [];
+    for (const f of newFiles) {
+      const base64 = await readFileAsBase64(f);
+      newDocs.push({
+        id: crypto.randomUUID(),
+        name: f.name,
+        type: f.type.includes('pdf') ? 'pdf' : 'text',
+        content: base64, // Store actual file
+        dateAdded: new Date().toISOString()
+      });
+    }
 
     const updatedCard: CreditCard = {
       ...card,
@@ -259,7 +303,8 @@ const CardDetailModal: React.FC<{
       documents: [...(card.documents || []), ...newDocs]
     };
     
-    onUpdate(updatedCard);
+    await onUpdate(updatedCard);
+    setIsSavingEdit(false);
     setIsEditing(false);
     setNewFiles([]);
   };
@@ -323,12 +368,14 @@ const CardDetailModal: React.FC<{
                   />
                 </div>
                 <div>
-                   <label className="block text-xs font-bold text-blue-800 uppercase mb-2">Upload Files</label>
+                   <label className="block text-xs font-bold text-blue-800 uppercase mb-2">Upload Files (Saved to DB)</label>
                    <input type="file" multiple onChange={(e) => e.target.files && setNewFiles(Array.from(e.target.files))} className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"/>
-                   {newFiles.length > 0 && <div className="text-xs text-blue-600 mt-2">{newFiles.length} file(s) selected</div>}
+                   {newFiles.length > 0 && <div className="text-xs text-blue-600 mt-2">{newFiles.length} file(s) ready to save</div>}
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <button onClick={handleSaveEdits} className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-xs hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">Save Changes</button>
+                  <button onClick={handleSaveEdits} disabled={isSavingEdit} className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-xs hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
+                    {isSavingEdit ? 'Saving...' : 'Save Changes'}
+                  </button>
                   <button onClick={() => { setIsEditing(false); setManualText(card.manualDetails || ''); setNewFiles([]); }} className="px-4 py-2 text-gray-500 font-bold text-xs hover:text-gray-700">Cancel</button>
                 </div>
              </div>
@@ -386,7 +433,7 @@ const CardDetailModal: React.FC<{
                       {card.documents && card.documents.length > 0 && (
                         <div className="pt-2 flex flex-wrap gap-2">
                            {card.documents.map((d, i) => (
-                             <div key={i} className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                             <div key={i} className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer" title="Stored in Database">
                                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                 <span className="text-xs text-gray-600 truncate max-w-[150px]">{d.name}</span>
                              </div>
@@ -431,6 +478,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
   // Manual Documents/Text
   const [manualText, setManualText] = useState('');
   const [manualFiles, setManualFiles] = useState<File[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSearch = async () => {
     if (!bankQuery.trim()) return;
@@ -478,17 +526,24 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
     }
   };
 
-  const handleFinalizeAdd = () => {
+  const handleFinalizeAdd = async () => {
     if (!inputLastFour || !inputHolderName) return;
     if (mode === 'manual' && (!draftCard.bankName || !draftCard.cardName)) return;
 
-    // Create Document objects for files
-    const docs: CardDocument[] = manualFiles.map(f => ({
-      id: crypto.randomUUID(),
-      name: f.name,
-      type: f.type.includes('pdf') ? 'pdf' : 'text',
-      dateAdded: new Date().toISOString()
-    }));
+    setIsSaving(true);
+
+    // Create Document objects for files with actual content
+    const docs: CardDocument[] = [];
+    for (const f of manualFiles) {
+      const base64 = await readFileAsBase64(f);
+      docs.push({
+        id: crypto.randomUUID(),
+        name: f.name,
+        type: f.type.includes('pdf') ? 'pdf' : 'text',
+        content: base64, // Store file content in DB
+        dateAdded: new Date().toISOString()
+      });
+    }
 
     const newCard: CreditCard = {
       id: crypto.randomUUID(),
@@ -503,7 +558,9 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
       manualDetails: manualText, // Store the pasted policy text
       documents: docs
     };
-    onAdd(newCard);
+    
+    await onAdd(newCard);
+    setIsSaving(false);
   };
 
   // --- RENDER SEARCH STEP ---
@@ -681,10 +738,10 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
                     <span className="text-xs font-bold text-gray-700">Upload PDF or Documents</span>
                     {manualFiles.length > 0 ? (
                       <div className="mt-2 text-xs text-green-600 font-bold bg-green-50 px-2 py-1 rounded-full">
-                        {manualFiles.length} file(s) selected
+                        {manualFiles.length} file(s) selected (Saved to DB)
                       </div>
                     ) : (
-                      <span className="text-[10px] text-gray-400 mt-1">Tap to browse</span>
+                      <span className="text-[10px] text-gray-400 mt-1">Tap to browse (Saved to DB)</span>
                     )}
                  </div>
               </div>
@@ -705,9 +762,10 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
         <div className="pt-4 pb-8">
           <Button 
             onClick={handleFinalizeAdd} 
-            disabled={!inputHolderName || inputLastFour.length < 4 || (mode === 'manual' && !draftCard.cardName)}
+            disabled={!inputHolderName || inputLastFour.length < 4 || (mode === 'manual' && !draftCard.cardName) || isSaving}
+            isLoading={isSaving}
           >
-            Save to Wallet
+            {isSaving ? 'Saving to Database...' : 'Save to Wallet'}
           </Button>
         </div>
       </div>
