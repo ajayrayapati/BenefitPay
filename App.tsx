@@ -24,12 +24,17 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [isLoadingDB, setIsLoadingDB] = useState(true);
   
-  // Load from IndexedDB on startup
+  // Load from Storage on startup
   useEffect(() => {
     const init = async () => {
-      const data = await CardRepository.getAll();
-      setCards(data);
-      setIsLoadingDB(false);
+      try {
+        const data = await CardRepository.getAll();
+        setCards(data);
+      } catch (e) {
+        console.error("Failed to load data", e);
+      } finally {
+        setIsLoadingDB(false);
+      }
     };
     init();
   }, []);
@@ -105,7 +110,7 @@ export default function App() {
       <div className="flex items-center justify-center h-full bg-slate-900 text-white">
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mb-4"></div>
-          <p className="text-sm font-medium animate-pulse">Loading Secure Database...</p>
+          <p className="text-sm font-medium animate-pulse">Loading Secure Wallet...</p>
         </div>
       </div>
     );
@@ -149,32 +154,37 @@ export default function App() {
 
               <div className="space-y-6">
                  <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Database Management</h3>
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Backup & Restore</h3>
                     
                     <div className="grid grid-cols-2 gap-3">
                        <button onClick={handleExport} className="flex flex-col items-center justify-center p-4 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-colors active:scale-95">
                           <svg className="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                          <span className="text-xs font-bold">Export DB</span>
+                          <span className="text-xs font-bold">Export Backup</span>
                        </button>
 
                        <label className="flex flex-col items-center justify-center p-4 bg-gray-50 text-gray-700 rounded-2xl hover:bg-gray-100 transition-colors cursor-pointer active:scale-95">
                           <input type="file" accept=".json" onChange={handleImport} className="hidden" />
                           <svg className="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                          <span className="text-xs font-bold">Restore DB</span>
+                          <span className="text-xs font-bold">Load Backup</span>
                        </label>
                     </div>
                  </div>
 
-                 <div className="pt-4 border-t border-gray-100">
+                 <div className="bg-yellow-50 p-3 rounded-xl border border-yellow-100">
+                    <h4 className="text-xs font-bold text-yellow-800 mb-1">⚠️ Storage Info</h4>
+                    <p className="text-[10px] text-yellow-700 leading-relaxed">
+                       This is a local-only app. Data is stored in your browser. <br/>
+                       1. <strong>Refreshing:</strong> Data should persist. <br/>
+                       2. <strong>New Browser/Device:</strong> Data will NOT appear. <br/>
+                       Use "Export Backup" to move data between devices.
+                    </p>
+                 </div>
+
+                 <div className="pt-2 border-t border-gray-100">
                     <button onClick={handleClearAll} className="w-full py-3 text-red-600 text-sm font-bold bg-red-50 hover:bg-red-100 rounded-xl transition-colors">
                        Reset App & Clear All Data
                     </button>
                  </div>
-                 
-                 <p className="text-[10px] text-center text-gray-400">
-                   Data is stored in your browser's IndexedDB. 
-                   Clearing browser cache may remove this data.
-                 </p>
               </div>
            </div>
         </div>

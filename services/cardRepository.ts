@@ -1,9 +1,21 @@
 
-import { CreditCard } from '../types';
+import { CreditCard, CardDocument } from '../types';
 
 const DB_NAME = 'AISmartPayDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'cards';
+const LOCAL_BACKUP_KEY = 'ai_smart_pay_backup_lite';
+
+// Helper to strip heavy Base64 content from documents for LocalStorage backup
+const createLiteBackup = (cards: CreditCard[]) => {
+  return cards.map(card => ({
+    ...card,
+    documents: card.documents?.map(doc => ({
+      ...doc,
+      content: undefined // Remove heavy content for lightweight backup
+    }))
+  }));
+};
 
 // IndexedDB Helper
 export const CardRepository = {
@@ -27,7 +39,6 @@ export const CardRepository = {
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
         if (!db.objectStoreNames.contains(STORE_NAME)) {
-          // Create the object store with 'id' as the key path
           db.createObjectStore(STORE_NAME, { keyPath: 'id' });
         }
       };
@@ -35,59 +46,92 @@ export const CardRepository = {
   },
 
   getAll: async (): Promise<CreditCard[]> => {
+    let dbCards: CreditCard[] = [];
+    
+    // 1. Try Loading from IndexedDB (Preferred - contains full files)
     try {
       const db = await CardRepository.getDB();
-      return new Promise((resolve, reject) => {
+      dbCards = await new Promise((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, 'readonly');
         const store = tx.objectStore(STORE_NAME);
         const request = store.getAll();
         
         request.onsuccess = () => resolve(request.result || []);
-        request.onerror = () => reject("Error fetching cards");
+        request.onerror = () => reject("Error fetching cards from DB");
       });
     } catch (e) {
-      console.error(e);
-      return [];
+      console.warn("IndexedDB load failed, falling back to LocalStorage", e);
     }
+
+    // 2. If IndexedDB is empty (Sandbox wipe?), try LocalStorage
+    if (dbCards.length === 0) {
+      const localData = localStorage.getItem(LOCAL_BACKUP_KEY);
+      if (localData) {
+        console.log("Restoring from LocalStorage backup...");
+        return JSON.parse(localData);
+      }
+    }
+
+    return dbCards;
   },
 
   addCard: async (card: CreditCard): Promise<void> => {
+    // 1. Save to IndexedDB
     const db = await CardRepository.getDB();
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       const request = store.add(card);
-      
       request.onsuccess = () => resolve();
       request.onerror = () => reject("Error adding card");
     });
+
+    // 2. Update LocalStorage Backup
+    await CardRepository.syncToLocalStorage();
   },
   
   updateCard: async (card: CreditCard): Promise<void> => {
     const db = await CardRepository.getDB();
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
-      const request = store.put(card); // 'put' updates if key exists, inserts if not
-      
+      const request = store.put(card);
       request.onsuccess = () => resolve();
       request.onerror = () => reject("Error updating card");
     });
+
+    await CardRepository.syncToLocalStorage();
   },
 
   deleteCard: async (id: string): Promise<void> => {
     const db = await CardRepository.getDB();
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       const request = store.delete(id);
-      
       request.onsuccess = () => resolve();
       request.onerror = () => reject("Error deleting card");
     });
+
+    await CardRepository.syncToLocalStorage();
+  },
+
+  // Internal helper to keep LocalStorage in sync
+  syncToLocalStorage: async () => {
+    try {
+      const db = await CardRepository.getDB();
+      const allCards = await new Promise<CreditCard[]>((resolve) => {
+         const tx = db.transaction(STORE_NAME, 'readonly');
+         resolve(tx.objectStore(STORE_NAME).getAll() as any);
+      });
+      
+      const liteBackup = createLiteBackup(allCards);
+      localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(liteBackup));
+    } catch (e) {
+      console.error("Failed to sync to LocalStorage", e);
+    }
   },
   
-  // Backup: Export entire DB to JSON string
   exportData: async (): Promise<string> => {
     try {
         const cards = await CardRepository.getAll();
@@ -102,27 +146,23 @@ export const CardRepository = {
     }
   },
   
-  // Restore: Import JSON string into DB
   importData: async (jsonString: string): Promise<boolean> => {
       try {
           const data = JSON.parse(jsonString);
           if(data && Array.isArray(data.cards)) {
               const db = await CardRepository.getDB();
-              return new Promise((resolve) => {
+              await new Promise((resolve) => {
                   const tx = db.transaction(STORE_NAME, 'readwrite');
                   const store = tx.objectStore(STORE_NAME);
-                  
-                  // Clear existing data before import? 
-                  // Let's assume restore overwrites/merges. For safety, let's clear.
-                  store.clear();
-                  
-                  data.cards.forEach((card: CreditCard) => {
-                      store.add(card);
-                  });
-                  
+                  store.clear(); // Overwrite
+                  data.cards.forEach((card: CreditCard) => store.add(card));
                   tx.oncomplete = () => resolve(true);
                   tx.onerror = () => resolve(false);
               });
+              
+              // Sync to local storage immediately
+              localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(createLiteBackup(data.cards)));
+              return true;
           }
           return false;
       } catch (e) {
@@ -133,12 +173,13 @@ export const CardRepository = {
 
   clearAll: async (): Promise<void> => {
       const db = await CardRepository.getDB();
-      return new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
         store.clear();
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject("Error clearing DB");
       });
+      localStorage.removeItem(LOCAL_BACKUP_KEY);
   }
 };
