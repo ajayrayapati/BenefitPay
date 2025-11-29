@@ -59,8 +59,9 @@ export const CreditCardView: React.FC<CreditCardViewProps> = ({ card, onClick, s
              </span>
           </div>
           <div className="flex flex-col items-end">
-             <span className="text-[10px] uppercase opacity-70">Exp</span>
-             <span className="font-mono text-sm">XX/XX</span>
+             {/* Masked security details as requested */}
+             <span className="text-[10px] uppercase opacity-70">Security</span>
+             <span className="font-mono text-sm tracking-widest">XXX</span>
           </div>
         </div>
       </div>

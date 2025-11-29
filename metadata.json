@@ -1,5 +1,5 @@
 {
-  "name": "Copy of CardWiz",
-  "description": "Your intelligent wallet companion. Add your credit cards, and CardWiz uses AI to tell you exactly which card to use for every purchase to maximize rewards and benefits.",
+  "name": "AI-Smart Pay",
+  "description": "Your intelligent wallet companion. Add your credit cards manually or via AI search. Upload policy details and get smart recommendations for every purchase.",
   "requestFramePermissions": []
 }

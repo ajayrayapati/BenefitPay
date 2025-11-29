@@ -17,16 +17,28 @@ export interface CardBenefit {
   description: string;
 }
 
+export interface CardDocument {
+  id: string;
+  name: string;
+  type: 'pdf' | 'text' | 'image';
+  content?: string; // For text/pasted content
+  dateAdded: string;
+}
+
 export interface CreditCard {
   id: string;
   bankName: string;
   cardName: string;
-  holderName: string; // Added user input field
+  holderName: string; 
   network: CardType;
-  colorTheme: string; // hex code or gradient class
+  colorTheme: string; 
   rewards: RewardCategory[];
-  benefits: CardBenefit[]; // Warranties, protections
+  benefits: CardBenefit[];
   lastFour?: string;
+  
+  // Manual / Custom Data
+  manualDetails?: string; // Large text block for pasted policies/warranties
+  documents?: CardDocument[]; // List of attached files (metadata)
 }
 
 export interface RecommendationResult {
@@ -35,7 +47,6 @@ export interface RecommendationResult {
   estimatedReward?: string;
 }
 
-// Navigation Views
 export enum AppView {
   WALLET = 'WALLET',
   ADD_CARD = 'ADD_CARD',

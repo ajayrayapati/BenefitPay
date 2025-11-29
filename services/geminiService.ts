@@ -2,7 +2,6 @@ import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { CardType, CreditCard, RecommendationResult } from "../types";
 
 // Initialize Gemini Client
-// CRITICAL: Ensure process.env.API_KEY is available in your environment.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const MODEL_FAST = 'gemini-2.5-flash';
@@ -103,22 +102,24 @@ export const recommendBestCard = async (
 ): Promise<RecommendationResult | null> => {
   if (userCards.length === 0) return null;
 
-  // Simplify the wallet for the prompt to save tokens
+  // Include manual details/documents in the prompt context
   const walletSummary = userCards.map(c => ({
     id: c.id,
     name: `${c.bankName} ${c.cardName}`,
     rewards: c.rewards,
-    benefits: c.benefits
+    benefits: c.benefits,
+    additionalNotes: c.manualDetails || '', // Include pasted text
+    documents: c.documents?.map(d => d.name).join(', ') || ''
   }));
 
   const prompt = `
   User is making a purchase/transaction described as: "${query}".
   
-  Here is their wallet:
+  Here is their wallet (including manual notes and benefits):
   ${JSON.stringify(walletSummary, null, 2)}
   
   Analyze the merchant category code (MCC) implications of the purchase query.
-  Compare the reward rates and relevant protections (e.g., if buying electronics, look for warranty; if travel, look for insurance).
+  Compare the reward rates and relevant protections (e.g., if buying electronics, look for warranty in benefits or additionalNotes; if travel, look for insurance).
   
   Select the single best card ID from the wallet.
   Explain why in one short sentence.

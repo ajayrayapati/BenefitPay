@@ -1,36 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { AppView, CreditCard } from './types';
+import React, { useState, useEffect, useRef } from 'react';
+import { AppView, CreditCard, CardType, CardDocument } from './types';
 import { searchCardsByBank, fetchCardDetails, recommendBestCard } from './services/geminiService';
+import { CardRepository } from './services/cardRepository';
 import { CreditCardView } from './components/CreditCardView';
 import { TabBar } from './components/TabBar';
 import { Button } from './components/Button';
 
-// Mock data for initial state or empty state
-const INITIAL_CARDS: CreditCard[] = [];
-
 export default function App() {
   const [view, setView] = useState<AppView>(AppView.WALLET);
-  const [cards, setCards] = useState<CreditCard[]>(INITIAL_CARDS);
+  const [cards, setCards] = useState<CreditCard[]>([]);
   
-  // Load from local storage on mount
+  // Load from Repository (Persistent Storage)
   useEffect(() => {
-    const saved = localStorage.getItem('cardwiz_wallet');
-    if (saved) {
-      try {
-        setCards(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to load cards", e);
-      }
-    }
+    setCards(CardRepository.load());
   }, []);
 
-  // Save to local storage on change
-  useEffect(() => {
-    localStorage.setItem('cardwiz_wallet', JSON.stringify(cards));
-  }, [cards]);
-
   const addCard = (newCard: CreditCard) => {
-    setCards(prev => [...prev, newCard]);
+    const updatedCards = CardRepository.addCard(newCard);
+    setCards(updatedCards);
     setView(AppView.WALLET);
   };
 
@@ -53,7 +40,10 @@ const WalletView: React.FC<{ cards: CreditCard[], onChangeView: (v: AppView) => 
   return (
     <div className="px-6 py-12">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Wallet</h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">AI-Smart Pay</h1>
+          <p className="text-gray-500 text-xs mt-1">Intelligent Wallet</p>
+        </div>
         <div className="bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center">
             <span className="text-xs font-bold text-gray-500">{cards.length}</span>
         </div>
@@ -85,16 +75,23 @@ const WalletView: React.FC<{ cards: CreditCard[], onChangeView: (v: AppView) => 
 };
 
 const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => void }> = ({ onAdd, onCancel }) => {
-  const [step, setStep] = useState<1 | 2>(1); // 1: Search, 2: Details
+  const [mode, setMode] = useState<'search' | 'manual'>('search');
+  const [step, setStep] = useState<1 | 2>(1); // 1: Search/Input, 2: Details/Confirm
+  
+  // Search Mode State
   const [bankQuery, setBankQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [foundCards, setFoundCards] = useState<string[]>([]);
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   
-  // Step 2 State
+  // Shared/Manual State
   const [draftCard, setDraftCard] = useState<Partial<CreditCard>>({});
   const [inputHolderName, setInputHolderName] = useState('');
   const [inputLastFour, setInputLastFour] = useState('');
+  
+  // Manual Documents/Text
+  const [manualText, setManualText] = useState('');
+  const [manualFiles, setManualFiles] = useState<File[]>([]);
 
   const handleSearch = async () => {
     if (!bankQuery.trim()) return;
@@ -117,14 +114,42 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
       });
       setStep(2);
     } catch (e) {
-      alert("Could not fetch details. Please try again.");
+      alert("Could not fetch details. Please try again or use Manual Mode.");
     } finally {
       setIsFetchingDetails(false);
     }
   };
 
+  const initManualMode = () => {
+    setMode('manual');
+    setDraftCard({
+      bankName: '',
+      cardName: '',
+      network: CardType.VISA,
+      colorTheme: '#333333',
+      rewards: [],
+      benefits: []
+    });
+    setStep(2);
+  };
+
+  const handleManualFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setManualFiles(Array.from(e.target.files));
+    }
+  };
+
   const handleFinalizeAdd = () => {
     if (!inputLastFour || !inputHolderName) return;
+    if (mode === 'manual' && (!draftCard.bankName || !draftCard.cardName)) return;
+
+    // Create Document objects for files
+    const docs: CardDocument[] = manualFiles.map(f => ({
+      id: crypto.randomUUID(),
+      name: f.name,
+      type: f.type.includes('pdf') ? 'pdf' : 'text',
+      dateAdded: new Date().toISOString()
+    }));
 
     const newCard: CreditCard = {
       id: crypto.randomUUID(),
@@ -132,16 +157,18 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
       cardName: draftCard.cardName!,
       network: draftCard.network!,
       colorTheme: draftCard.colorTheme!,
-      rewards: draftCard.rewards!,
-      benefits: draftCard.benefits!,
+      rewards: draftCard.rewards || [],
+      benefits: draftCard.benefits || [],
       holderName: inputHolderName,
-      lastFour: inputLastFour
+      lastFour: inputLastFour,
+      manualDetails: manualText, // Store the pasted policy text
+      documents: docs
     };
     onAdd(newCard);
   };
 
-  // Render Step 1: Search & List
-  if (step === 1) {
+  // --- RENDER SEARCH STEP ---
+  if (step === 1 && mode === 'search') {
     return (
       <div className="px-6 py-8 h-full flex flex-col">
          <div className="flex justify-between items-center mb-6">
@@ -154,7 +181,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
           <div className="flex gap-2">
               <input 
                 type="text" 
-                placeholder="e.g. Chase, Amex, Capital One"
+                placeholder="e.g. Chase, Amex"
                 className="flex-1 bg-white border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow"
                 value={bankQuery}
                 onChange={(e) => setBankQuery(e.target.value)}
@@ -169,13 +196,19 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
               </button>
           </div>
         </div>
+
+        <div className="mt-4">
+          <button onClick={initManualMode} className="text-sm text-blue-600 underline font-medium">
+             Cannot find your card? Add Manually
+          </button>
+        </div>
   
         <div className="mt-8 flex-1 overflow-y-auto no-scrollbar">
           {isFetchingDetails && (
-            <div className="flex flex-col items-center justify-center h-40">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
-              <p className="text-gray-500 text-sm">Fetching card styling & rewards...</p>
-            </div>
+             <div className="flex flex-col items-center justify-center h-40 space-y-3">
+               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+               <p className="text-gray-500 text-sm">Fetching card details...</p>
+             </div>
           )}
           {!isFetchingDetails && foundCards.length > 0 && (
             <div className="space-y-2">
@@ -197,52 +230,141 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
     );
   }
 
-  // Render Step 2: Details
+  // --- RENDER DETAILS / MANUAL STEP ---
   return (
     <div className="px-6 py-8 h-full flex flex-col">
        <div className="flex justify-between items-center mb-6">
-        <button onClick={() => setStep(1)} className="text-blue-500 font-medium flex items-center">
+        <button onClick={() => { setStep(1); setMode('search'); }} className="text-blue-500 font-medium flex items-center">
           <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Back
         </button>
-        <h2 className="text-lg font-bold">Card Details</h2>
+        <h2 className="text-lg font-bold">{mode === 'manual' ? 'Manual Entry' : 'Card Details'}</h2>
         <div className="w-12"></div>
       </div>
 
-      <div className="mb-8 transform scale-95 origin-top">
+      <div className="mb-6 transform scale-95 origin-top">
         <CreditCardView card={{...draftCard, holderName: inputHolderName || 'YOUR NAME', lastFour: inputLastFour || '••••'}} />
       </div>
 
-      <div className="space-y-6 flex-1">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Name on Card</label>
-          <input 
-            type="text" 
-            placeholder="JOHN APPLESEED"
-            className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase"
-            value={inputHolderName}
-            onChange={(e) => setInputHolderName(e.target.value.toUpperCase())}
-          />
+      <div className="space-y-5 flex-1 overflow-y-auto no-scrollbar pb-10">
+        
+        {/* Manual Fields if in Manual Mode */}
+        {mode === 'manual' && (
+          <div className="grid grid-cols-2 gap-4">
+             <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Bank Name</label>
+                <input 
+                  type="text" 
+                  className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2"
+                  value={draftCard.bankName}
+                  onChange={(e) => setDraftCard({...draftCard, bankName: e.target.value})}
+                />
+             </div>
+             <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Card Name</label>
+                <input 
+                  type="text" 
+                  className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2"
+                  value={draftCard.cardName}
+                  onChange={(e) => setDraftCard({...draftCard, cardName: e.target.value})}
+                />
+             </div>
+             <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Network</label>
+                <select 
+                   className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2"
+                   value={draftCard.network}
+                   onChange={(e) => setDraftCard({...draftCard, network: e.target.value as CardType})}
+                >
+                  {Object.values(CardType).map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+             </div>
+             <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Color (Hex)</label>
+                <input 
+                  type="color" 
+                  className="w-full h-[42px] bg-white border border-gray-300 rounded-lg p-1"
+                  value={draftCard.colorTheme}
+                  onChange={(e) => setDraftCard({...draftCard, colorTheme: e.target.value})}
+                />
+             </div>
+          </div>
+        )}
+
+        {/* Standard User Fields */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2">
+            <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Name on Card</label>
+            <input 
+              type="text" 
+              placeholder="JOHN APPLESEED"
+              className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 uppercase"
+              value={inputHolderName}
+              onChange={(e) => setInputHolderName(e.target.value.toUpperCase())}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Last 4 Digits</label>
+            <input 
+              type="tel" 
+              maxLength={4}
+              placeholder="1234"
+              className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 font-mono tracking-widest"
+              value={inputLastFour}
+              onChange={(e) => setInputLastFour(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            />
+          </div>
+        </div>
+        
+        {/* Documents / Plain Text Upload Section */}
+        <div className="border-t border-gray-200 pt-4 mt-2">
+           <h3 className="text-sm font-bold text-gray-900 mb-2">Rewards & Policy Info</h3>
+           <p className="text-xs text-gray-500 mb-3">
+             {mode === 'manual' 
+               ? "Since we can't fetch details automatically, please upload PDFs or paste the rewards/benefits text below so our AI can recommend this card correctly." 
+               : "Add extra details (like specific warranty terms) to help the AI."}
+           </p>
+
+           <div className="space-y-3">
+              {/* File Upload Simulation */}
+              <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:bg-gray-50 transition-colors">
+                 <input 
+                    type="file" 
+                    multiple 
+                    accept=".pdf,.txt,.doc"
+                    onChange={handleManualFileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                 />
+                 <div className="flex flex-col items-center">
+                    <svg className="w-6 h-6 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                    <span className="text-xs font-medium text-blue-600">Upload PDF or Documents</span>
+                    {manualFiles.length > 0 && (
+                      <div className="mt-2 text-xs text-gray-600">
+                        {manualFiles.length} file(s) selected
+                      </div>
+                    )}
+                 </div>
+              </div>
+
+              {/* Text Paste Area */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Paste Policy / Rewards Text</label>
+                <textarea
+                  className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm min-h-[100px]"
+                  placeholder="Paste text from your card agreement, warranty policy, or rewards structure here..."
+                  value={manualText}
+                  onChange={(e) => setManualText(e.target.value)}
+                />
+              </div>
+           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Last 4 Digits</label>
-          <input 
-            type="tel" 
-            maxLength={4}
-            placeholder="1234"
-            className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono tracking-widest"
-            value={inputLastFour}
-            onChange={(e) => setInputLastFour(e.target.value.replace(/\D/g, '').slice(0, 4))}
-          />
-        </div>
-
-        <div className="pt-4">
+        <div className="pt-4 pb-8">
           <Button 
             onClick={handleFinalizeAdd} 
-            disabled={!inputHolderName || inputLastFour.length < 4}
+            disabled={!inputHolderName || inputLastFour.length < 4 || (mode === 'manual' && !draftCard.cardName)}
           >
-            Add to Wallet
+            Save to Wallet
           </Button>
         </div>
       </div>
@@ -295,7 +417,7 @@ const RecommendView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
   return (
     <div className="px-6 py-12 flex flex-col h-full">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Ask CardWiz</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Ask AI-Smart Pay</h1>
         {result && (
           <button onClick={clearResult} className="text-sm text-blue-500 font-medium">New Search</button>
         )}
@@ -305,7 +427,7 @@ const RecommendView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-8 space-y-5">
           
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">What are you buying?</label>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Product or Service</label>
             <input
               type="text"
               className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
@@ -316,7 +438,7 @@ const RecommendView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Where (Merchant)?</label>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Merchant or Place</label>
             <input
               type="text"
               className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
@@ -333,7 +455,7 @@ const RecommendView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
                   onClick={() => setIsOnline(false)}
                   className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${!isOnline ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
                 >
-                  In-Store
+                  In-Store / Physical
                 </button>
                 <button 
                   onClick={() => setIsOnline(true)}
