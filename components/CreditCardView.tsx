@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { CreditCard, CardType } from '../types';
 
@@ -20,6 +21,7 @@ export const CreditCardView: React.FC<CreditCardViewProps> = ({ card, onClick, s
     }
   };
 
+  const textShadowClass = "drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"; // Heavy shadow for readability on light cards
   const textColor = 'text-white'; 
 
   return (
@@ -36,32 +38,32 @@ export const CreditCardView: React.FC<CreditCardViewProps> = ({ card, onClick, s
       
       <div className={`relative z-10 flex flex-col justify-between h-full ${textColor}`}>
         <div className="flex justify-between items-start">
-          <span className="font-bold tracking-wider text-sm opacity-90">{(card.bankName || 'BANK').toUpperCase()}</span>
-          <span className="font-bold italic">{getNetworkLogo(card.network)}</span>
+          <span className={`font-bold tracking-wider text-sm opacity-90 ${textShadowClass}`}>{(card.bankName || 'BANK').toUpperCase()}</span>
+          <span className={`font-bold italic ${textShadowClass}`}>{getNetworkLogo(card.network)}</span>
         </div>
         
         <div className="mt-4">
            {/* Chip Simulation */}
-           <div className="w-10 h-8 bg-yellow-200/80 rounded-md mb-4 border border-yellow-400/50 flex items-center justify-center overflow-hidden">
+           <div className="w-10 h-8 bg-yellow-200/80 rounded-md mb-4 border border-yellow-400/50 flex items-center justify-center overflow-hidden shadow-sm">
               <div className="w-full h-[1px] bg-yellow-600/50 absolute top-1/2"></div>
               <div className="h-full w-[1px] bg-yellow-600/50 absolute left-1/2"></div>
            </div>
-           <h3 className="font-mono text-lg sm:text-xl tracking-widest shadow-black drop-shadow-md">
-             {card.lastFour ? `•••• •••• •••• ${card.lastFour}` : `•••• •••• •••• ••••`}
+           {/* Nickname Display */}
+           <h3 className={`font-mono text-lg sm:text-xl tracking-widest uppercase truncate ${textShadowClass}`}>
+             {card.nickName || '•••• •••• •••• ••••'}
            </h3>
         </div>
 
         <div className="flex justify-between items-end">
           <div className="flex flex-col">
-             <span className="text-[10px] uppercase opacity-70">Card Holder</span>
-             <span className="font-medium tracking-wide text-sm uppercase truncate max-w-[150px]">
+             <span className={`text-[10px] uppercase opacity-80 mb-0.5 ${textShadowClass}`}>Card Holder</span>
+             <span className={`font-medium tracking-wide text-sm uppercase truncate max-w-[150px] ${textShadowClass}`}>
                {card.holderName || 'YOUR NAME'}
              </span>
           </div>
           <div className="flex flex-col items-end">
-             {/* Masked security details as requested */}
-             <span className="text-[10px] uppercase opacity-70">Security</span>
-             <span className="font-mono text-sm tracking-widest">XXX</span>
+             <span className={`text-[10px] uppercase opacity-80 mb-0.5 ${textShadowClass}`}>Security</span>
+             <span className={`font-mono text-sm tracking-widest ${textShadowClass}`}>XXX</span>
           </div>
         </div>
       </div>

@@ -118,7 +118,9 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-br from-gray-50 via-white to-blue-50 relative font-sans text-gray-900">
-      <main className="flex-1 overflow-y-auto no-scrollbar pb-[100px]">
+      <TabBar currentView={view} onChange={setView} />
+      
+      <main className="flex-1 overflow-y-auto no-scrollbar pt-[90px] pb-6">
         {view === AppView.WALLET && (
           <WalletView 
             cards={cards} 
@@ -129,9 +131,8 @@ export default function App() {
         )}
         {view === AppView.ADD_CARD && <AddCardView onAdd={addCard} onCancel={() => setView(AppView.WALLET)} />}
         {view === AppView.RECOMMEND && <RecommendView cards={cards} />}
+        {view === AppView.HELP && <HelpView />}
       </main>
-      
-      <TabBar currentView={view} onChange={setView} />
 
       {/* Card Detail Modal Overlay */}
       {selectedCard && (
@@ -202,13 +203,13 @@ const WalletView: React.FC<{
   onOpenSettings: () => void
 }> = ({ cards, onChangeView, onCardClick, onOpenSettings }) => {
   return (
-    <div className="px-6 py-10">
-      <div className="flex justify-between items-start mb-8">
+    <div className="px-6 py-4">
+      <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600">
             AI-Smart Pay
           </h1>
-          <p className="text-gray-500 text-sm font-medium mt-1">Your Intelligent Wallet</p>
+          <p className="text-gray-500 text-sm font-medium mt-1">My Wallet</p>
         </div>
         <button 
           onClick={onOpenSettings}
@@ -221,8 +222,14 @@ const WalletView: React.FC<{
         </button>
       </div>
 
+      <div className="mb-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+        <p className="text-sm text-blue-900 leading-relaxed">
+          Simple smart pay app which provides recommendations on what credit card to use for different purchases based on the cards you own.
+        </p>
+      </div>
+
       {cards.length === 0 ? (
-        <div className="flex flex-col items-center justify-center mt-20 text-center space-y-4 animate-fade-in-up">
+        <div className="flex flex-col items-center justify-center mt-12 text-center space-y-4 animate-fade-in-up">
           <div className="w-20 h-20 bg-gradient-to-tr from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mb-4 shadow-inner">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-9 h-9 text-blue-500">
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
@@ -251,6 +258,63 @@ const WalletView: React.FC<{
   );
 };
 
+const HelpView: React.FC = () => {
+  return (
+    <div className="px-6 py-4">
+      <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600 mb-6">
+        How to Use
+      </h1>
+
+      <div className="space-y-6 animate-fade-in-up">
+        
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3 mb-3">
+             <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                  <path d="M11.25 4.533A9.707 9.707 0 006 3.755c-2.348 0-4.526.918-6.191 2.421l8.691 8.691 8.692-8.691A9.688 9.688 0 0011.25 4.533z" fillOpacity={0} />
+                  <path fillRule="evenodd" d="M2.25 5.25a3 3 0 013-3h13.5a3 3 0 013 3V15a3 3 0 01-3 3h-3v-2.192a6.042 6.042 0 00-3-4.856V6a1 1 0 10-2 0v6.192a6.042 6.042 0 00-3 4.856V21H5.25a3 3 0 01-3-3V5.25z" clipRule="evenodd" />
+               </svg>
+             </div>
+             <h3 className="font-bold text-lg text-gray-900">Wallet Home</h3>
+          </div>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            This is your digital wallet. All your saved cards appear here. Tap on any card to view its rewards, benefits, or to edit its details manually.
+          </p>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3 mb-3">
+             <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                 <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 9a.75.75 0 00-1.5 0v2.25H9a.75.75 0 000 1.5h2.25V15a.75.75 0 001.5 0v-2.25H15a.75.75 0 000-1.5h-2.25V9z" clipRule="evenodd" />
+               </svg>
+             </div>
+             <h3 className="font-bold text-lg text-gray-900">Add Card</h3>
+          </div>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            Search for your bank (e.g., "Chase") to auto-fill card details using AI. If the AI is busy, or for custom cards, you can enter details manually and upload warranty PDFs.
+          </p>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3 mb-3">
+             <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                  <path fillRule="evenodd" d="M10.5 3.75a6.75 6.75 0 100 13.5 6.75 6.75 0 000-13.5zM2.25 10.5a8.25 8.25 0 1114.59 5.28l4.69 4.69a.75.75 0 11-1.06 1.06l-4.69-4.69A8.25 8.25 0 012.25 10.5z" clipRule="evenodd" />
+               </svg>
+             </div>
+             <h3 className="font-bold text-lg text-gray-900">Ask AI</h3>
+          </div>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            The core feature. Enter what you are buying (e.g., "iPhone") and where (e.g., "Apple Store"). The AI analyzes your wallet's rewards and warranties to recommend the single best card to use.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
 // --- Card Detail Modal with Edit/Refresh/Delete ---
 const CardDetailModal: React.FC<{ 
   card: CreditCard, 
@@ -263,8 +327,17 @@ const CardDetailModal: React.FC<{
   // Edit Mode State
   const [isEditing, setIsEditing] = useState(false);
   const [manualText, setManualText] = useState(card.manualDetails || '');
+  const [editHolderName, setEditHolderName] = useState(card.holderName || '');
+  const [editNickName, setEditNickName] = useState(card.nickName || ''); // Changed from editLastFour
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Sync state when card prop updates
+  useEffect(() => {
+    setEditHolderName(card.holderName || '');
+    setEditNickName(card.nickName || ''); // Changed from lastFour
+    setManualText(card.manualDetails || '');
+  }, [card]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -309,6 +382,8 @@ const CardDetailModal: React.FC<{
 
     const updatedCard: CreditCard = {
       ...card,
+      holderName: editHolderName,
+      nickName: editNickName, // Changed from lastFour
       manualDetails: manualText,
       documents: [...(card.documents || []), ...newDocs]
     };
@@ -323,13 +398,13 @@ const CardDetailModal: React.FC<{
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center pointer-events-none">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md pointer-events-auto transition-opacity" onClick={onClose} />
       
-      <div className="bg-gradient-to-b from-white to-gray-50 w-full h-[92%] sm:h-[85%] sm:w-[360px] sm:rounded-3xl rounded-t-3xl shadow-2xl z-50 overflow-hidden flex flex-col pointer-events-auto transform transition-transform duration-300 animate-fade-in-up">
+      <div className="bg-gradient-to-b from-white to-gray-50 w-full h-[92%] sm:h-[90%] sm:w-[400px] sm:rounded-3xl rounded-t-3xl shadow-2xl z-50 overflow-hidden flex flex-col pointer-events-auto transform transition-transform duration-300 animate-fade-in-up">
         
         {/* Header */}
         <div className="px-6 py-4 bg-white/80 backdrop-blur-md border-b border-gray-100 flex justify-between items-center sticky top-0 z-10">
            <div className="flex flex-col">
              <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">{card.network}</span>
-             <h2 className="text-lg font-bold text-gray-900 truncate max-w-[200px]">{card.bankName} {card.cardName}</h2>
+             <h2 className="text-lg font-bold text-gray-900 truncate max-w-[250px]">{card.bankName} {card.cardName}</h2>
            </div>
            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 hover:scale-105 transition-all">
              ✕
@@ -337,9 +412,9 @@ const CardDetailModal: React.FC<{
         </div>
 
         <div className="overflow-y-auto p-6 space-y-6 flex-1 no-scrollbar">
-           {/* Card Preview */}
+           {/* Card Preview (Live update during edit) */}
            <div className="shadow-2xl rounded-2xl scale-[0.98]">
-             <CreditCardView card={card} />
+             <CreditCardView card={{...card, holderName: editHolderName, nickName: editNickName}} />
            </div>
            
            <div className="text-center text-[10px] text-gray-400 font-medium">
@@ -363,22 +438,45 @@ const CardDetailModal: React.FC<{
                   className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold text-xs active:scale-95 transition-all"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                  Edit Notes & Docs
+                  Edit Notes & Info
                 </button>
              </div>
            ) : (
              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-4 animate-fade-in-up">
+                <div className="grid grid-cols-2 gap-3">
+                   <div className="col-span-2">
+                      <label className="block text-xs font-bold text-blue-800 uppercase mb-1">Name on Card</label>
+                      <input 
+                        type="text" 
+                        value={editHolderName}
+                        onChange={(e) => setEditHolderName(e.target.value.toUpperCase())}
+                        className="w-full text-sm p-2 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400 outline-none uppercase"
+                        placeholder="YOUR NAME"
+                      />
+                   </div>
+                   <div className="col-span-2">
+                      <label className="block text-xs font-bold text-blue-800 uppercase mb-1">Card Nickname</label>
+                      <input 
+                        type="text" 
+                        value={editNickName}
+                        onChange={(e) => setEditNickName(e.target.value)}
+                        className="w-full text-sm p-2 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400 outline-none uppercase"
+                        placeholder="e.g. DINING CARD"
+                      />
+                   </div>
+                </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-blue-800 uppercase mb-2">Update Manual Notes</label>
+                  <label className="block text-xs font-bold text-blue-800 uppercase mb-2">Manual Notes / Benefits</label>
                   <textarea 
                     value={manualText}
                     onChange={(e) => setManualText(e.target.value)}
-                    className="w-full text-sm p-3 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400 outline-none h-24"
+                    className="w-full text-sm p-3 rounded-lg border border-blue-200 focus:ring-2 focus:ring-blue-400 outline-none h-20"
                     placeholder="Paste benefit updates or warranty text here..."
                   />
                 </div>
                 <div>
-                   <label className="block text-xs font-bold text-blue-800 uppercase mb-2">Upload Files (Saved to DB)</label>
+                   <label className="block text-xs font-bold text-blue-800 uppercase mb-2">Upload Files</label>
                    <input type="file" multiple onChange={(e) => e.target.files && setNewFiles(Array.from(e.target.files))} className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"/>
                    {newFiles.length > 0 && <div className="text-xs text-blue-600 mt-2">{newFiles.length} file(s) ready to save</div>}
                 </div>
@@ -386,7 +484,7 @@ const CardDetailModal: React.FC<{
                   <button onClick={handleSaveEdits} disabled={isSavingEdit} className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold text-xs hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
                     {isSavingEdit ? 'Saving...' : 'Save Changes'}
                   </button>
-                  <button onClick={() => { setIsEditing(false); setManualText(card.manualDetails || ''); setNewFiles([]); }} className="px-4 py-2 text-gray-500 font-bold text-xs hover:text-gray-700">Cancel</button>
+                  <button onClick={() => { setIsEditing(false); setEditHolderName(card.holderName || ''); setEditNickName(card.nickName || ''); setManualText(card.manualDetails || ''); setNewFiles([]); }} className="px-4 py-2 text-gray-500 font-bold text-xs hover:text-gray-700">Cancel</button>
                 </div>
              </div>
            )}
@@ -483,7 +581,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
   // Shared/Manual State
   const [draftCard, setDraftCard] = useState<Partial<CreditCard>>({});
   const [inputHolderName, setInputHolderName] = useState('');
-  const [inputLastFour, setInputLastFour] = useState('');
+  const [inputNickName, setInputNickName] = useState(''); // Changed from inputLastFour
   
   // Manual Documents/Text
   const [manualText, setManualText] = useState('');
@@ -507,7 +605,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
         bankName: bankQuery,
         cardName: cardName,
         holderName: '',
-        lastFour: ''
+        nickName: '' // Changed from lastFour
       });
       setStep(2);
     } catch (e) {
@@ -537,7 +635,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
   };
 
   const handleFinalizeAdd = async () => {
-    if (!inputLastFour || !inputHolderName) return;
+    if (!inputNickName || !inputHolderName) return; // Changed inputLastFour check
     if (mode === 'manual' && (!draftCard.bankName || !draftCard.cardName)) return;
 
     setIsSaving(true);
@@ -564,7 +662,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
       rewards: draftCard.rewards || [],
       benefits: draftCard.benefits || [],
       holderName: inputHolderName,
-      lastFour: inputLastFour,
+      nickName: inputNickName, // Changed from lastFour
       manualDetails: manualText, // Store the pasted policy text
       documents: docs
     };
@@ -576,7 +674,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
   // --- RENDER SEARCH STEP ---
   if (step === 1 && mode === 'search') {
     return (
-      <div className="px-6 py-10 h-full flex flex-col">
+      <div className="px-6 py-4 h-full flex flex-col">
          <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-bold text-gray-900">Add Card</h2>
           <button onClick={onCancel} className="text-blue-600 font-bold text-sm">Cancel</button>
@@ -638,7 +736,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
 
   // --- RENDER DETAILS / MANUAL STEP ---
   return (
-    <div className="px-6 py-8 h-full flex flex-col">
+    <div className="px-6 py-4 h-full flex flex-col">
        <div className="flex justify-between items-center mb-6">
         <button onClick={() => { setStep(1); setMode('search'); }} className="text-blue-600 font-bold text-sm flex items-center hover:underline">
           <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -649,7 +747,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
       </div>
 
       <div className="mb-8 transform scale-100 origin-top shadow-xl rounded-2xl">
-        <CreditCardView card={{...draftCard, holderName: inputHolderName || 'YOUR NAME', lastFour: inputLastFour || '••••'}} />
+        <CreditCardView card={{...draftCard, holderName: inputHolderName || 'YOUR NAME', nickName: inputNickName || 'NICKNAME'}} />
       </div>
 
       <div className="space-y-5 flex-1 overflow-y-auto no-scrollbar pb-10">
@@ -709,15 +807,14 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
               onChange={(e) => setInputHolderName(e.target.value.toUpperCase())}
             />
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Last 4 Digits</label>
+          <div className="col-span-2">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Card Nickname (e.g. GAS CARD)</label>
             <input 
-              type="tel" 
-              maxLength={4}
-              placeholder="1234"
-              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 font-mono tracking-widest shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
-              value={inputLastFour}
-              onChange={(e) => setInputLastFour(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              type="text" 
+              placeholder="MY TRAVEL CARD"
+              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 uppercase shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              value={inputNickName}
+              onChange={(e) => setInputNickName(e.target.value)}
             />
           </div>
         </div>
@@ -772,7 +869,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
         <div className="pt-4 pb-8">
           <Button 
             onClick={handleFinalizeAdd} 
-            disabled={!inputHolderName || inputLastFour.length < 4 || (mode === 'manual' && !draftCard.cardName) || isSaving}
+            disabled={!inputHolderName || !inputNickName || (mode === 'manual' && !draftCard.cardName) || isSaving}
             isLoading={isSaving}
           >
             {isSaving ? 'Saving to Database...' : 'Save to Wallet'}

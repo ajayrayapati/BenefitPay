@@ -35,7 +35,7 @@ export interface CreditCard {
   colorTheme: string; 
   rewards: RewardCategory[];
   benefits: CardBenefit[];
-  lastFour?: string;
+  nickName?: string; // Changed from lastFour
   
   // Manual / Custom Data
   manualDetails?: string; // Large text block for pasted policies/warranties
@@ -54,5 +54,6 @@ export interface RecommendationResult {
 export enum AppView {
   WALLET = 'WALLET',
   ADD_CARD = 'ADD_CARD',
-  RECOMMEND = 'RECOMMEND'
+  RECOMMEND = 'RECOMMEND',
+  HELP = 'HELP'
 }

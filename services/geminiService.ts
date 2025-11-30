@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { CardType, CreditCard, RecommendationResult } from "../types";
 
@@ -172,6 +173,7 @@ export const recommendBestCard = async (
   const walletSummary = userCards.map(c => ({
     id: c.id,
     name: `${c.bankName} ${c.cardName}`,
+    nickName: c.nickName || '',
     rewards: c.rewards,
     benefits: c.benefits,
     additionalNotes: c.manualDetails || '', 
@@ -185,7 +187,7 @@ export const recommendBestCard = async (
   ${JSON.stringify(walletSummary, null, 2)}
   
   Select the single best card ID from the wallet.
-  Explain why in one short sentence.
+  Explain why in one short sentence. You can refer to the card by its Nickname if available.
   `;
 
   const schema: Schema = {
