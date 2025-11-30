@@ -203,7 +203,7 @@ const WalletView: React.FC<{
   onOpenSettings: () => void
 }> = ({ cards, onChangeView, onCardClick, onOpenSettings }) => {
   return (
-    <div className="px-6 py-4">
+    <div className="px-6 py-4 max-w-lg mx-auto w-full">
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600">
@@ -260,7 +260,7 @@ const WalletView: React.FC<{
 
 const HelpView: React.FC = () => {
   return (
-    <div className="px-6 py-4">
+    <div className="px-6 py-4 max-w-lg mx-auto w-full">
       <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600 mb-6">
         How to Use
       </h1>
@@ -674,7 +674,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
   // --- RENDER SEARCH STEP ---
   if (step === 1 && mode === 'search') {
     return (
-      <div className="px-6 py-4 h-full flex flex-col">
+      <div className="px-6 py-4 h-full flex flex-col max-w-lg mx-auto w-full">
          <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-bold text-gray-900">Add Card</h2>
           <button onClick={onCancel} className="text-blue-600 font-bold text-sm">Cancel</button>
@@ -744,7 +744,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
 
   // --- RENDER DETAILS / MANUAL STEP ---
   return (
-    <div className="px-6 py-4 h-full flex flex-col">
+    <div className="px-6 py-4 h-full flex flex-col max-w-lg mx-auto w-full">
        <div className="flex justify-between items-center mb-6">
         <button onClick={() => { setStep(1); setMode('search'); }} className="text-blue-600 font-bold text-sm flex items-center hover:underline">
           <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -754,7 +754,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
         <div className="w-12"></div>
       </div>
 
-      <div className="mb-8 transform scale-100 origin-top shadow-xl rounded-2xl">
+      <div className="mb-8 transform scale-100 origin-top shadow-xl rounded-2xl w-full max-w-sm mx-auto">
         <CreditCardView card={{...draftCard, holderName: inputHolderName || 'YOUR NAME', nickName: inputNickName || 'NICKNAME'}} />
       </div>
 
@@ -988,7 +988,7 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
   const isHighValuePurchase = purchaseAmount && parseFloat(purchaseAmount) > 500;
 
   return (
-    <div className="px-6 py-12 flex flex-col h-full relative">
+    <div className="px-6 py-12 flex flex-col h-full relative max-w-lg mx-auto w-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600">Ask AI-Smart Pay</h1>
         {(result || errorMsg || showEmptyWalletOption) && (
