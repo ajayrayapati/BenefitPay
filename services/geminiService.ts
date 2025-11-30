@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { CardType, CreditCard, RecommendationResult } from "../types";
+import { CardType, CreditCard, RecommendationResult, MarketRecommendation } from "../types";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -26,11 +26,19 @@ const FALLBACK_COMMON_CARDS: Record<string, string[]> = {
 const cleanJson = (text: string): string => {
   if (!text) return "[]";
   let clean = text.trim();
+  // Handle markdown code blocks
   if (clean.startsWith('```json')) {
     clean = clean.replace(/^```json\s*/, '').replace(/\s*```$/, '');
   } else if (clean.startsWith('```')) {
     clean = clean.replace(/^```\s*/, '').replace(/\s*```$/, '');
   }
+  
+  // Heuristic: Attempt to cut off trailing garbage if JSON seems cut off or malformed
+  const lastBrace = clean.lastIndexOf('}');
+  if (lastBrace !== -1 && lastBrace < clean.length - 1) {
+    clean = clean.substring(0, lastBrace + 1);
+  }
+  
   return clean;
 }
 
@@ -88,7 +96,6 @@ export const searchCardsByBank = async (bankName: string): Promise<string[]> => 
     return JSON.parse(cleanJson(text)) as string[];
   } catch (error) {
     console.warn("Error searching cards, using fallback:", error);
-    // Fallback logic
     const normalizedBank = bankName.toUpperCase();
     const key = Object.keys(FALLBACK_COMMON_CARDS).find(k => normalizedBank.includes(k)) || 'DEFAULT';
     return FALLBACK_COMMON_CARDS[key];
@@ -99,10 +106,20 @@ export const searchCardsByBank = async (bankName: string): Promise<string[]> => 
  * Step 2: Get detailed info (Rewards & Benefits) for a selected card
  */
 export const fetchCardDetails = async (cardName: string, bankName: string): Promise<Partial<CreditCard>> => {
-  const prompt = `Provide detailed reward rates (e.g., "3x on Dining") and key benefits (specifically warranties, purchase protection, travel insurance) for the credit card: "${bankName} ${cardName}".
+  const prompt = `Provide details for: "${bankName} ${cardName}".
   
-  Determine the network (VISA, MASTERCARD, AMEX, DISCOVER).
-  suggest a hex color code that represents the card branding (e.g. Sapphire blue, Amex Gold, etc).
+  Output JSON format:
+  {
+    "network": "VISA" | "MASTERCARD" | "AMEX" | "DISCOVER",
+    "colorTheme": "#RRGGBB" (hex for card branding),
+    "rewards": [{"category": "Dining", "rate": "3x", "description": "Global restaurants"}],
+    "benefits": [{"title": "Purchase Protection", "description": "Brief summary"}]
+  }
+
+  Constraints:
+  - Max 5 rewards categories.
+  - Max 5 key benefits.
+  - Keep descriptions UNDER 15 WORDS. Be concise.
   `;
 
   const schema: Schema = {
@@ -149,20 +166,19 @@ export const fetchCardDetails = async (cardName: string, bankName: string): Prom
     return JSON.parse(cleanJson(text));
   } catch (error) {
     console.error("Error fetching card details, using template:", error);
-    // Return partial structure so app doesn't crash, allowing manual entry
     return {
         bankName,
         cardName,
         network: CardType.OTHER,
         colorTheme: '#1e293b',
         rewards: [{ category: "General", rate: "1x", description: "Standard Purchase Rate" }],
-        benefits: [{ title: "Manual Entry Recommended", description: "We couldn't auto-fetch details due to high traffic. Please add benefits manually." }]
+        benefits: [{ title: "Manual Entry Recommended", description: "We couldn't auto-fetch details. Please add benefits manually." }]
     };
   }
 };
 
 /**
- * Step 3: Recommend a card based on purchase context
+ * Step 3: Recommend a card based on purchase context + Rakuten/Paypal Search + Value Maximization
  */
 export const recommendBestCard = async (
   query: string, 
@@ -181,39 +197,104 @@ export const recommendBestCard = async (
   }));
 
   const prompt = `
-  User is making a purchase/transaction described as: "${query}".
+  User transaction: "${query}".
   
-  Here is their wallet:
+  Task:
+  1. Use Google Search to find current Rakuten or PayPal cashback offers for this merchant.
+  2. Analyze the user's wallet to find the best credit card for points/benefits.
+  3. CALCULATE THE TOTAL VALUE: Add the Credit Card Reward (approx %) + Stacking Offer (%).
+  4. Create a strategy checklist to maximize this savings.
+
+  Wallet Data:
   ${JSON.stringify(walletSummary, null, 2)}
   
-  Select the single best card ID from the wallet.
-  Explain why in one short sentence. You can refer to the card by its Nickname if available.
+  Output ONLY raw JSON (no markdown) in this format:
+  {
+    "cardId": "string (id of best card)",
+    "reasoning": "string (why this card + warranty info)",
+    "estimatedReward": "string (e.g. '3% back from card')",
+    "stackingInfo": "string (e.g. 'Rakuten offers additional 5% cashback.')",
+    "optimizationAnalysis": {
+        "totalPotentialReturn": "string (e.g. 'Total ~8% Return')",
+        "stepsToMaximize": ["string (Step 1: Activate Rakuten)", "string (Step 2: Use Amex Gold)"]
+    }
+  }
   `;
-
-  const schema: Schema = {
-    type: Type.OBJECT,
-    properties: {
-      cardId: { type: Type.STRING },
-      reasoning: { type: Type.STRING },
-      estimatedReward: { type: Type.STRING }
-    },
-    required: ["cardId", "reasoning"]
-  };
 
   try {
     const response = await safeGenerateContent(MODEL_FAST, {
       contents: prompt,
       config: {
-        responseMimeType: "application/json",
-        responseSchema: schema
+        tools: [{ googleSearch: {} }] 
       }
     });
 
     const text = response.text;
     if (!text) return null;
-    return JSON.parse(cleanJson(text)) as RecommendationResult;
+
+    const parsed = JSON.parse(cleanJson(text)) as RecommendationResult;
+    
+    if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+      const chunks = response.candidates[0].groundingMetadata.groundingChunks;
+      parsed.sources = chunks
+        .filter((c: any) => c.web?.uri && c.web?.title)
+        .map((c: any) => ({ title: c.web.title, uri: c.web.uri }));
+    }
+
+    return parsed;
   } catch (error) {
     console.error("Error recommending card:", error);
     return null;
   }
 };
+
+/**
+ * Step 4: Search the market for a BETTER card (for large purchases)
+ */
+export const findBetterMarketCard = async (
+    query: string,
+    amount: string,
+    currentBestCardName: string
+  ): Promise<MarketRecommendation | null> => {
+    
+    const prompt = `
+    User is buying: "${query}" for Amount: $${amount}.
+    User's current best card is: "${currentBestCardName}".
+    
+    TASK: 
+    Using Google Search, find ONE credit card currently available on the market (US) that would be SIGNIFICANTLY better for this specific purchase than the user's current card.
+    
+    Focus on:
+    1. Sign-Up Bonuses (SUB) - Since the purchase amount is high, it contributes to spend requirements.
+    2. High Category Cashback for this merchant.
+    3. Purchase Protection / Extended Warranty benefits.
+    4. 0% Intro APR if applicable.
+  
+    Output ONLY raw JSON:
+    {
+      "bankName": "string",
+      "cardName": "string",
+      "headline": "string (e.g. 'Earn $200 Bonus + 5% Back')",
+      "whyBetter": "string (Direct comparison: 'This card offers X which beats your current card's Y')",
+      "benefitsForThisPurchase": ["string (benefit 1)", "string (benefit 2)"],
+      "applySearchQuery": "string (keywords to google search for application)"
+    }
+    `;
+  
+    try {
+      const response = await safeGenerateContent(MODEL_FAST, {
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }]
+        }
+      });
+  
+      const text = response.text;
+      if (!text) return null;
+  
+      return JSON.parse(cleanJson(text)) as MarketRecommendation;
+    } catch (error) {
+      console.error("Error finding market card:", error);
+      return null;
+    }
+  };

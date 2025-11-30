@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AppView, CreditCard, CardType, CardDocument } from './types';
-import { searchCardsByBank, fetchCardDetails, recommendBestCard } from './services/geminiService';
+import { AppView, CreditCard, CardType, CardDocument, RecommendationResult, MarketRecommendation } from './types';
+import { searchCardsByBank, fetchCardDetails, recommendBestCard, findBetterMarketCard } from './services/geminiService';
 import { CardRepository } from './services/cardRepository';
 import { CreditCardView } from './components/CreditCardView';
 import { TabBar } from './components/TabBar';
@@ -130,7 +130,7 @@ export default function App() {
           />
         )}
         {view === AppView.ADD_CARD && <AddCardView onAdd={addCard} onCancel={() => setView(AppView.WALLET)} />}
-        {view === AppView.RECOMMEND && <RecommendView cards={cards} />}
+        {view === AppView.RECOMMEND && <RecommendView cards={cards} onViewChange={setView} />}
         {view === AppView.HELP && <HelpView />}
       </main>
 
@@ -224,7 +224,7 @@ const WalletView: React.FC<{
 
       <div className="mb-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
         <p className="text-sm text-blue-900 leading-relaxed">
-          Simple smart pay app which provides recommendations on what credit card to use for different purchases based on the cards you own.
+          Simple smart pay app which provides recommendations on what credit card to use based on your wallet, plus finds real-time cashback stacking offers (Rakuten/PayPal) to maximize your savings.
         </p>
       </div>
 
@@ -306,7 +306,7 @@ const HelpView: React.FC = () => {
              <h3 className="font-bold text-lg text-gray-900">Ask AI</h3>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed">
-            The core feature. Enter what you are buying (e.g., "iPhone") and where (e.g., "Apple Store"). The AI analyzes your wallet's rewards and warranties to recommend the single best card to use.
+            The core feature. Enter what you are buying (e.g., "iPhone") and where (e.g., "Apple Store"). The AI recommends the best card from your wallet and simultaneously checks for "Stacking Opportunities" (extra cashback from Rakuten or PayPal) to help you double-dip on rewards.
           </p>
         </div>
 
@@ -880,63 +880,115 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
   );
 };
 
-const RecommendView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
+const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) => void }> = ({ cards, onViewChange }) => {
   const [item, setItem] = useState('');
   const [merchant, setMerchant] = useState('');
+  const [purchaseAmount, setPurchaseAmount] = useState('');
   const [isOnline, setIsOnline] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<{ card: CreditCard, reasoning: string, reward?: string } | null>(null);
+  const [result, setResult] = useState<RecommendationResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Market Recommendation State
+  const [marketRec, setMarketRec] = useState<MarketRecommendation | null>(null);
+  const [isMarketLoading, setIsMarketLoading] = useState(false);
+  const [showMarketModal, setShowMarketModal] = useState(false);
+  
+  // Empty Wallet State
+  const [showEmptyWalletOption, setShowEmptyWalletOption] = useState(false);
+
   const handleAsk = async () => {
-    if (!item.trim() || !merchant.trim() || cards.length === 0) return;
+    if (!item.trim() || !merchant.trim()) return;
     setIsLoading(true);
     setResult(null);
+    setMarketRec(null);
     setErrorMsg('');
+    setShowEmptyWalletOption(false);
+
+    if (cards.length === 0) {
+        setShowEmptyWalletOption(true);
+        setIsLoading(false);
+        return;
+    }
 
     const query = `Buying "${item}" at "${merchant}" (${isOnline ? 'Online Transaction' : 'In-Person/Physical Store'})`;
     
     const rec = await recommendBestCard(query, cards);
     if (rec) {
-      const winningCard = cards.find(c => c.id === rec.cardId);
-      if (winningCard) {
-        setResult({
-          card: winningCard,
-          reasoning: rec.reasoning,
-          reward: rec.estimatedReward
-        });
-      }
+      setResult(rec);
     } else {
       setErrorMsg("AI service is currently busy or unavailable. Please check your card benefits manually.");
     }
     setIsLoading(false);
   };
 
+  const handleFindBetterCard = async () => {
+    if (!result || !purchaseAmount) return;
+    setIsMarketLoading(true);
+    setShowMarketModal(true); // Open modal immediately to show loading state
+
+    const currentCard = cards.find(c => c.id === result.cardId);
+    const cardName = currentCard ? `${currentCard.bankName} ${currentCard.cardName}` : "Generic Credit Card";
+    const query = `Buying "${item}" at "${merchant}"`;
+
+    const marketResult = await findBetterMarketCard(query, purchaseAmount, cardName);
+    setMarketRec(marketResult);
+    setIsMarketLoading(false);
+  };
+  
+  const handleEmptyWalletMarketSearch = async () => {
+    setIsMarketLoading(true);
+    setShowMarketModal(true);
+
+    const query = `Buying "${item}" at "${merchant}"`;
+    const amountVal = purchaseAmount || '100'; // Default if empty
+
+    const marketResult = await findBetterMarketCard(query, amountVal, "Paying with Cash");
+    setMarketRec(marketResult);
+    setIsMarketLoading(false);
+  }
+
   const clearResult = () => {
     setResult(null);
     setErrorMsg('');
     setItem('');
     setMerchant('');
+    setPurchaseAmount('');
+    setMarketRec(null);
+    setShowMarketModal(false);
+    setShowEmptyWalletOption(false);
   }
 
-  if (cards.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full px-8 text-center animate-fade-in-up">
-         <p className="text-gray-500">Add cards to your wallet to enable Smart Recommendations.</p>
-      </div>
-    );
-  }
+  const getEstimatedValue = () => {
+    if (!purchaseAmount || !result?.optimizationAnalysis?.totalPotentialReturn) return null;
+    const amt = parseFloat(purchaseAmount);
+    if (isNaN(amt) || amt <= 0) return null;
+
+    // Regex to find a number followed by %
+    const regex = /(\d+(\.\d+)?)%/;
+    const match = result.optimizationAnalysis.totalPotentialReturn.match(regex);
+    
+    if (match) {
+        const percentage = parseFloat(match[1]);
+        const value = (amt * percentage) / 100;
+        return value.toFixed(2);
+    }
+    return null;
+  };
+
+  const estimatedEarnings = getEstimatedValue();
+  const isHighValuePurchase = purchaseAmount && parseFloat(purchaseAmount) > 500;
 
   return (
-    <div className="px-6 py-12 flex flex-col h-full">
+    <div className="px-6 py-12 flex flex-col h-full relative">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600">Ask AI-Smart Pay</h1>
-        {(result || errorMsg) && (
+        {(result || errorMsg || showEmptyWalletOption) && (
           <button onClick={clearResult} className="text-sm text-blue-600 font-bold hover:underline">New Search</button>
         )}
       </div>
       
-      {!result && !errorMsg ? (
+      {!result && !errorMsg && !showEmptyWalletOption ? (
         <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 mb-8 space-y-5 animate-fade-in-up">
           
           <div>
@@ -978,10 +1030,43 @@ const RecommendView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
                 </button>
              </div>
           </div>
+          
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Purchase Amount ($) <span className="text-gray-400 font-normal">(Optional)</span></label>
+            <div className="relative">
+                <span className="absolute left-4 top-3.5 text-gray-500 font-bold">$</span>
+                <input
+                type="number"
+                className="w-full bg-gray-50 border-0 rounded-xl pl-8 pr-4 py-3.5 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium"
+                placeholder="0.00"
+                value={purchaseAmount}
+                onChange={(e) => setPurchaseAmount(e.target.value)}
+                />
+            </div>
+            <p className="text-[10px] text-gray-500 mt-2 ml-1">Enter purchase amount to see estimated cashback earnings.</p>
+          </div>
 
           <div className="mt-4 pt-2">
              <Button onClick={handleAsk} isLoading={isLoading} disabled={!item || !merchant}>Find Best Card</Button>
           </div>
+        </div>
+      ) : showEmptyWalletOption ? (
+        <div className="animate-fade-in-up bg-blue-50 border border-blue-100 p-6 rounded-2xl text-center">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+               <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            </div>
+            <h3 className="text-blue-800 font-bold mb-2">Wallet is Empty</h3>
+            <p className="text-blue-600 text-sm mb-6">Since no card is available in your wallet, we cannot provide specific wallet recommendations. You can add a card or check for a general market recommendation.</p>
+            
+            <div className="space-y-3">
+                <Button onClick={() => onViewChange(AppView.ADD_CARD)}>Add a Card</Button>
+                <button 
+                  onClick={handleEmptyWalletMarketSearch}
+                  className="w-full bg-white text-blue-600 border border-blue-200 py-3.5 rounded-xl font-bold text-[17px] active:scale-[0.98] transition-all hover:bg-blue-50"
+                >
+                  Find Recommended Card
+                </button>
+            </div>
         </div>
       ) : errorMsg ? (
         <div className="animate-fade-in-up bg-red-50 border border-red-100 p-6 rounded-2xl text-center">
@@ -993,33 +1078,195 @@ const RecommendView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
             <Button onClick={clearResult} variant="secondary">Try Again Later</Button>
         </div>
       ) : (
-        <div className="animate-fade-in-up">
+        <div className="animate-fade-in-up pb-10">
            <div className="flex items-center gap-2 mb-4">
               <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-ping"></span>
               <span className="text-xs font-bold text-green-600 uppercase tracking-widest">Recommendation Found</span>
            </div>
            
+           {/* Card Recommendation */}
            <div className="transform transition-transform hover:scale-[1.02] duration-300">
-             {result && <CreditCardView card={result.card} className="mb-6 shadow-2xl" />}
+             {result && result.cardId && (
+               <CreditCardView card={cards.find(c => c.id === result.cardId) || {}} className="mb-6 shadow-2xl" />
+             )}
            </div>
            
-           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 p-6 rounded-3xl relative overflow-hidden shadow-sm">
+           {/* NEW: Maximize Savings Dashboard */}
+           {result?.optimizationAnalysis && (
+             <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-6 rounded-3xl mb-4 relative overflow-hidden shadow-sm">
+                 <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-3">
+                       <span className="text-xl">💰</span>
+                       <h3 className="text-emerald-900 font-extrabold text-sm uppercase tracking-wide">Maximize Your Savings</h3>
+                    </div>
+                    
+                    <div className="flex justify-between items-end mb-4">
+                        <div className="text-3xl font-black text-emerald-800 tracking-tight">
+                           {result.optimizationAnalysis.totalPotentialReturn}
+                        </div>
+                        {estimatedEarnings && (
+                            <div className="text-right bg-white/60 px-3 py-1 rounded-lg border border-emerald-100/50">
+                                <div className="text-[10px] font-bold text-emerald-600 uppercase">Est. Earnings</div>
+                                <div className="text-lg font-black text-emerald-700">${estimatedEarnings}</div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-2">
+                       {result.optimizationAnalysis.stepsToMaximize.map((step, idx) => (
+                         <div key={idx} className="flex items-start gap-3 bg-white/60 p-3 rounded-xl border border-emerald-100/50">
+                            <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                               {idx + 1}
+                            </div>
+                            <p className="text-sm text-emerald-900 font-medium leading-tight">{step}</p>
+                         </div>
+                       ))}
+                    </div>
+                 </div>
+             </div>
+           )}
+
+           {/* Why this card? */}
+           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 p-6 rounded-3xl relative overflow-hidden shadow-sm space-y-4 mb-6">
               <div className="relative z-10">
                 <h3 className="text-blue-900 font-bold text-sm uppercase tracking-wide mb-2">Why this card?</h3>
                 <p className="text-blue-900 text-lg font-medium leading-relaxed mb-4">
                   {result?.reasoning}
                 </p>
-                {result?.reward && (
+                {result?.estimatedReward && (
                   <div className="inline-flex items-center px-4 py-2 bg-white/80 backdrop-blur-md border border-blue-200 text-blue-700 text-sm font-bold rounded-full shadow-sm">
-                    ✨ {result.reward}
+                    ✨ {result.estimatedReward}
                   </div>
                 )}
               </div>
+              
+              {/* Stacking Offers (Legacy/Fallback) */}
+              {result?.stackingInfo && (
+                <div className="relative z-10 pt-4 border-t border-blue-200/50">
+                  <h3 className="text-purple-700 font-bold text-sm uppercase tracking-wide mb-2 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    Extra Offers Found
+                  </h3>
+                  <div className="bg-white/60 p-3 rounded-xl text-purple-900 text-sm border border-purple-100">
+                    {result.stackingInfo}
+                  </div>
+                </div>
+              )}
+
+              {/* Sources */}
+              {result?.sources && result.sources.length > 0 && (
+                <div className="relative z-10 pt-4 mt-2">
+                   <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Sources</h4>
+                   <div className="flex flex-wrap gap-2">
+                     {result.sources.map((s, i) => (
+                       <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-white border border-gray-200 px-2 py-1 rounded-md text-gray-500 hover:text-blue-600 hover:border-blue-300 truncate max-w-[150px]">
+                         {s.title}
+                       </a>
+                     ))}
+                   </div>
+                </div>
+              )}
+
               {/* Decoration */}
               <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-400/20 rounded-full blur-2xl"></div>
               <div className="absolute -top-10 -left-10 w-40 h-40 bg-indigo-400/10 rounded-full blur-2xl"></div>
            </div>
+
+           {/* High Value Purchase - Apply for New Card Banner - MOVED TO BOTTOM */}
+           {isHighValuePurchase && (
+              <div className="mb-6 animate-fade-in-up delay-200">
+                  <button 
+                    onClick={handleFindBetterCard}
+                    className="w-full bg-gradient-to-r from-amber-100 via-yellow-50 to-amber-100 border border-amber-200 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all active:scale-[0.98] group relative overflow-hidden"
+                  >
+                     <div className="relative z-10 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-amber-200 text-amber-800 flex items-center justify-center">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                          </div>
+                          <div className="text-left">
+                            <h3 className="font-bold text-amber-900 text-sm">Large Purchase Alert</h3>
+                            <p className="text-xs text-amber-700 mt-0.5">You could earn a bigger bonus on this purchase.</p>
+                          </div>
+                        </div>
+                        <span className="bg-amber-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-sm group-hover:bg-amber-600 transition-colors">Find Better Card</span>
+                     </div>
+                     <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-amber-300/30 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
+                  </button>
+              </div>
+            )}
         </div>
+      )}
+
+      {/* Market Recommendation Modal - UPDATED FOR MOBILE SCROLLING */}
+      {showMarketModal && (
+          <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-4 sm:p-4">
+              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowMarketModal(false)}></div>
+              
+              <div className="relative w-full max-w-sm max-h-[85vh] flex flex-col bg-gradient-to-b from-amber-50 to-white rounded-3xl shadow-2xl animate-fade-in-up border border-amber-100 overflow-hidden">
+                  
+                  {isMarketLoading ? (
+                      <div className="flex flex-col items-center justify-center py-10 h-64">
+                          <div className="w-12 h-12 border-4 border-amber-300 border-t-amber-600 rounded-full animate-spin mb-4"></div>
+                          <h3 className="text-amber-800 font-bold">Scanning Credit Card Market...</h3>
+                          <p className="text-amber-600 text-xs mt-2">Checking Sign-Up Bonuses & Benefits</p>
+                      </div>
+                  ) : marketRec ? (
+                      <div className="flex flex-col h-full">
+                          {/* Header - Fixed at top */}
+                          <div className="flex justify-between items-start p-6 pb-2 shrink-0 bg-amber-50">
+                             <div>
+                                <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Market Recommendation</span>
+                                <h2 className="text-xl font-bold text-gray-900 mt-1 leading-tight">{marketRec.bankName}</h2>
+                                <h3 className="text-sm text-gray-700 font-medium">{marketRec.cardName}</h3>
+                             </div>
+                             <button onClick={() => setShowMarketModal(false)} className="bg-white hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center text-gray-500 shadow-sm border border-gray-100">✕</button>
+                          </div>
+
+                          {/* Scrollable Body */}
+                          <div className="overflow-y-auto p-6 pt-2 no-scrollbar">
+                              <div className="bg-amber-100 text-amber-900 p-4 rounded-2xl mb-5 border border-amber-200 shadow-sm">
+                                  <h4 className="font-bold text-lg mb-1 leading-tight">{marketRec.headline}</h4>
+                              </div>
+
+                              <div className="space-y-4 mb-6">
+                                  <div>
+                                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Why it beats your current card</h4>
+                                      <p className="text-sm text-gray-800 font-medium leading-relaxed">{marketRec.whyBetter}</p>
+                                  </div>
+                                  
+                                  <div>
+                                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Benefits for this purchase</h4>
+                                     <ul className="space-y-2">
+                                         {marketRec.benefitsForThisPurchase.map((b, i) => (
+                                             <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                                                <span className="text-green-500 font-bold mt-0.5">✓</span> 
+                                                <span className="leading-snug">{b}</span>
+                                             </li>
+                                         ))}
+                                     </ul>
+                                  </div>
+                              </div>
+
+                              <a 
+                                 href={`https://www.google.com/search?q=${encodeURIComponent(marketRec.applySearchQuery)}`}
+                                 target="_blank"
+                                 rel="noopener noreferrer"
+                                 className="block w-full bg-gray-900 text-white text-center py-3.5 rounded-xl font-bold text-sm shadow-lg hover:bg-black transition-colors"
+                              >
+                                 Apply / View Offer
+                              </a>
+                              <p className="text-[10px] text-gray-400 text-center mt-3">Links to Google Search for security.</p>
+                          </div>
+                      </div>
+                  ) : (
+                      <div className="text-center py-10 px-6">
+                          <p className="text-gray-500 mb-4">Could not find a better market recommendation at this time.</p>
+                          <button onClick={() => setShowMarketModal(false)} className="bg-gray-100 px-6 py-2 rounded-xl text-gray-700 font-bold text-sm">Close</button>
+                      </div>
+                  )}
+              </div>
+          </div>
       )}
 
       {/* Legal Disclaimer Footer */}

@@ -35,7 +35,7 @@ export interface CreditCard {
   colorTheme: string; 
   rewards: RewardCategory[];
   benefits: CardBenefit[];
-  nickName?: string; // Changed from lastFour
+  nickName?: string; 
   
   // Manual / Custom Data
   manualDetails?: string; // Large text block for pasted policies/warranties
@@ -49,6 +49,21 @@ export interface RecommendationResult {
   cardId: string;
   reasoning: string;
   estimatedReward?: string;
+  stackingInfo?: string; // Information about Rakuten/Paypal offers
+  optimizationAnalysis?: {
+    totalPotentialReturn: string; // e.g. "Up to 9% Value"
+    stepsToMaximize: string[]; // ["Use Rakuten (4%)", "Pay with Gold Card (4x)", "Check Amex Offers"]
+  };
+  sources?: { title: string; uri: string }[]; // Links to sources found via Google Search
+}
+
+export interface MarketRecommendation {
+  bankName: string;
+  cardName: string;
+  headline: string; // e.g. "Earn $200 Bonus"
+  whyBetter: string; // Comparison reasoning vs current card
+  benefitsForThisPurchase: string[]; // List of specific benefits for this item
+  applySearchQuery: string; // String to construct google search link
 }
 
 export enum AppView {
