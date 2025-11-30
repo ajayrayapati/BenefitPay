@@ -51,7 +51,7 @@ export const CardRepository = {
     // 1. Try Loading from IndexedDB (Preferred - contains full files)
     try {
       const db = await CardRepository.getDB();
-      dbCards = await new Promise((resolve, reject) => {
+      dbCards = await new Promise<CreditCard[]>((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, 'readonly');
         const store = tx.objectStore(STORE_NAME);
         const request = store.getAll();
@@ -120,13 +120,18 @@ export const CardRepository = {
   syncToLocalStorage: async () => {
     try {
       const db = await CardRepository.getDB();
+      // CRITICAL FIX: Properly handle IDBRequest instead of casting directly
       const allCards = await new Promise<CreditCard[]>((resolve) => {
          const tx = db.transaction(STORE_NAME, 'readonly');
-         resolve(tx.objectStore(STORE_NAME).getAll() as any);
+         const request = tx.objectStore(STORE_NAME).getAll();
+         request.onsuccess = () => resolve(request.result || []);
+         request.onerror = () => resolve([]);
       });
       
-      const liteBackup = createLiteBackup(allCards);
-      localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(liteBackup));
+      if (Array.isArray(allCards)) {
+        const liteBackup = createLiteBackup(allCards);
+        localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(liteBackup));
+      }
     } catch (e) {
       console.error("Failed to sync to LocalStorage", e);
     }
@@ -161,7 +166,8 @@ export const CardRepository = {
               });
               
               // Sync to local storage immediately
-              localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(createLiteBackup(data.cards)));
+              const liteBackup = createLiteBackup(data.cards);
+              localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(liteBackup));
               return true;
           }
           return false;

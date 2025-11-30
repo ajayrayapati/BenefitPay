@@ -789,11 +789,13 @@ const RecommendView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
   const [isOnline, setIsOnline] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<{ card: CreditCard, reasoning: string, reward?: string } | null>(null);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleAsk = async () => {
     if (!item.trim() || !merchant.trim() || cards.length === 0) return;
     setIsLoading(true);
     setResult(null);
+    setErrorMsg('');
 
     const query = `Buying "${item}" at "${merchant}" (${isOnline ? 'Online Transaction' : 'In-Person/Physical Store'})`;
     
@@ -807,12 +809,15 @@ const RecommendView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
           reward: rec.estimatedReward
         });
       }
+    } else {
+      setErrorMsg("AI service is currently busy or unavailable. Please check your card benefits manually.");
     }
     setIsLoading(false);
   };
 
   const clearResult = () => {
     setResult(null);
+    setErrorMsg('');
     setItem('');
     setMerchant('');
   }
@@ -829,12 +834,12 @@ const RecommendView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
     <div className="px-6 py-12 flex flex-col h-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600">Ask AI-Smart Pay</h1>
-        {result && (
+        {(result || errorMsg) && (
           <button onClick={clearResult} className="text-sm text-blue-600 font-bold hover:underline">New Search</button>
         )}
       </div>
       
-      {!result ? (
+      {!result && !errorMsg ? (
         <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 mb-8 space-y-5 animate-fade-in-up">
           
           <div>
@@ -881,6 +886,15 @@ const RecommendView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
              <Button onClick={handleAsk} isLoading={isLoading} disabled={!item || !merchant}>Find Best Card</Button>
           </div>
         </div>
+      ) : errorMsg ? (
+        <div className="animate-fade-in-up bg-red-50 border border-red-100 p-6 rounded-2xl text-center">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+               <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            </div>
+            <h3 className="text-red-800 font-bold mb-2">Service Busy</h3>
+            <p className="text-red-600 text-sm mb-4">{errorMsg}</p>
+            <Button onClick={clearResult} variant="secondary">Try Again Later</Button>
+        </div>
       ) : (
         <div className="animate-fade-in-up">
            <div className="flex items-center gap-2 mb-4">
@@ -889,16 +903,16 @@ const RecommendView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
            </div>
            
            <div className="transform transition-transform hover:scale-[1.02] duration-300">
-             <CreditCardView card={result.card} className="mb-6 shadow-2xl" />
+             {result && <CreditCardView card={result.card} className="mb-6 shadow-2xl" />}
            </div>
            
            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 p-6 rounded-3xl relative overflow-hidden shadow-sm">
               <div className="relative z-10">
                 <h3 className="text-blue-900 font-bold text-sm uppercase tracking-wide mb-2">Why this card?</h3>
                 <p className="text-blue-900 text-lg font-medium leading-relaxed mb-4">
-                  {result.reasoning}
+                  {result?.reasoning}
                 </p>
-                {result.reward && (
+                {result?.reward && (
                   <div className="inline-flex items-center px-4 py-2 bg-white/80 backdrop-blur-md border border-blue-200 text-blue-700 text-sm font-bold rounded-full shadow-sm">
                     ✨ {result.reward}
                   </div>
