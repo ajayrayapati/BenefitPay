@@ -681,11 +681,11 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
         </div>
   
         <div className="space-y-4">
-          <label className="block text-sm font-bold text-gray-700">Bank Name</label>
+          <label className="block text-sm font-bold text-gray-700">Bank or Merchant Name <span className="text-gray-400 font-normal text-xs">(e.g. Chase or Macy's)</span></label>
           <div className="flex gap-2">
               <input 
                 type="text" 
-                placeholder="e.g. Chase, Amex"
+                placeholder="e.g. Chase, Macy's"
                 className="flex-1 bg-white border border-gray-200 shadow-sm rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
                 value={bankQuery}
                 onChange={(e) => setBankQuery(e.target.value)}
@@ -708,13 +708,21 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
         </div>
   
         <div className="mt-8 flex-1 overflow-y-auto no-scrollbar">
+          {isSearching && (
+            <div className="flex flex-col items-center justify-center h-40 space-y-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <p className="text-gray-500 text-sm font-medium">Identifying available card types...</p>
+            </div>
+          )}
+
           {isFetchingDetails && (
              <div className="flex flex-col items-center justify-center h-40 space-y-3">
                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-               <p className="text-gray-500 text-sm font-medium">Fetching card details...</p>
+               <p className="text-gray-500 text-sm font-medium text-center max-w-xs">Fetching reward and benefit details of the card and card type from available resources...</p>
              </div>
           )}
-          {!isFetchingDetails && foundCards.length > 0 && (
+
+          {!isFetchingDetails && !isSearching && foundCards.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Select your card</h3>
               {foundCards.map((cardName) => (
@@ -756,7 +764,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
         {mode === 'manual' && (
           <div className="grid grid-cols-2 gap-4">
              <div className="col-span-2">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Bank Name</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Bank or Merchant Name</label>
                 <input 
                   type="text" 
                   className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
@@ -821,7 +829,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
         
         {/* Documents / Plain Text Upload Section */}
         <div className="border-t border-gray-200 pt-5 mt-4">
-           <h3 className="text-sm font-bold text-gray-900 mb-2">Rewards & Policy Info</h3>
+           <h3 className="text-sm font-bold text-gray-900 mb-2">Rewards & Policy Info <span className="text-gray-400 font-normal text-xs">(Optional)</span></h3>
            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
              {mode === 'manual' 
                ? "Since we can't fetch details automatically, please upload PDFs or paste the rewards/benefits text below so our AI can recommend this card correctly." 
@@ -855,7 +863,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
 
               {/* Text Paste Area */}
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Paste Policy / Rewards Text</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Paste Policy / Rewards Text <span className="text-gray-400 font-normal lowercase">(Optional)</span></label>
                 <textarea
                   className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm min-h-[100px] shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
                   placeholder="Paste text from your card agreement, warranty policy, or rewards structure here..."
