@@ -967,14 +967,15 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
     setShowEmptyWalletOption(false);
   }
 
-  const getEstimatedValue = () => {
-    if (!purchaseAmount || !result?.optimizationAnalysis?.totalPotentialReturn) return null;
-    const amt = parseFloat(purchaseAmount);
+  // Generic helper to parse percentages from AI strings and calculate dollar value
+  const calculateCashbackValue = (percentageString: string | undefined, amountStr: string) => {
+    if (!percentageString || !amountStr) return null;
+    const amt = parseFloat(amountStr);
     if (isNaN(amt) || amt <= 0) return null;
 
     // Regex to find a number followed by %
     const regex = /(\d+(\.\d+)?)%/;
-    const match = result.optimizationAnalysis.totalPotentialReturn.match(regex);
+    const match = percentageString.match(regex);
     
     if (match) {
         const percentage = parseFloat(match[1]);
@@ -984,7 +985,14 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
     return null;
   };
 
-  const estimatedEarnings = getEstimatedValue();
+  const estimatedTotalEarnings = result?.optimizationAnalysis?.totalPotentialReturn 
+      ? calculateCashbackValue(result.optimizationAnalysis.totalPotentialReturn, purchaseAmount) 
+      : null;
+
+  const estimatedCardEarnings = result?.estimatedReward
+      ? calculateCashbackValue(result.estimatedReward, purchaseAmount)
+      : null;
+
   const isHighValuePurchase = purchaseAmount && parseFloat(purchaseAmount) > 500;
 
   return (
@@ -1092,30 +1100,84 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
               <span className="text-xs font-bold text-green-600 uppercase tracking-widest">Recommendation Found</span>
            </div>
            
-           {/* Card Recommendation */}
+           {/* 1. Card & Stats Section (Top) */}
            <div className="transform transition-transform hover:scale-[1.02] duration-300">
              {result && result.cardId && (
-               <CreditCardView card={cards.find(c => c.id === result.cardId) || {}} className="mb-6 shadow-2xl" />
+               <CreditCardView card={cards.find(c => c.id === result.cardId) || {}} className="mb-4 shadow-2xl" />
              )}
+             
+             {/* Card Stats Box */}
+             <div className="flex justify-between items-center bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 shadow-sm">
+                 <div>
+                    <div className="text-[10px] text-blue-500 font-bold uppercase tracking-wider mb-0.5">Card Rewards</div>
+                    <div className="text-lg font-black text-blue-900">{result?.estimatedReward || "Standard Rate"}</div>
+                 </div>
+                 {estimatedCardEarnings && (
+                    <div className="text-right">
+                         <div className="text-[10px] text-blue-500 font-bold uppercase tracking-wider mb-0.5">Est. Cash</div>
+                         <div className="text-lg font-black text-blue-900">${estimatedCardEarnings}</div>
+                    </div>
+                 )}
+             </div>
            </div>
+
+           {/* 2. Reasoning & Detail Section */}
+           <div className="bg-white border border-gray-100 p-6 rounded-3xl relative overflow-hidden shadow-sm space-y-4 mb-6">
+              <div className="relative z-10">
+                <h3 className="text-gray-900 font-bold text-sm uppercase tracking-wide mb-2">Why this card?</h3>
+                <p className="text-gray-700 text-base font-medium leading-relaxed mb-4">
+                  {result?.reasoning}
+                </p>
+              </div>
+
+               {/* Sources */}
+               {result?.sources && result.sources.length > 0 && (
+                <div className="relative z-10 pt-4 mt-2 border-t border-gray-100">
+                   <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Verified Sources</h4>
+                   <div className="flex flex-wrap gap-2">
+                     {result.sources.map((s, i) => (
+                       <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-gray-50 border border-gray-200 px-2 py-1 rounded-md text-gray-500 hover:text-blue-600 hover:border-blue-300 truncate max-w-[150px]">
+                         {s.title}
+                       </a>
+                     ))}
+                   </div>
+                </div>
+              )}
+           </div>
+
+           {/* 3. Stacking Offers (Middle) */}
+           {result?.stackingInfo && (
+              <div className="bg-purple-50 p-5 rounded-2xl border border-purple-100 mb-6 shadow-sm">
+                <h3 className="text-purple-700 font-bold text-sm uppercase tracking-wide mb-2 flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  Extra Offers Found
+                </h3>
+                <p className="text-purple-900 text-sm font-medium leading-relaxed">
+                  {result.stackingInfo}
+                </p>
+              </div>
+           )}
            
-           {/* NEW: Maximize Savings Dashboard */}
+           {/* 4. Maximize Your Savings Dashboard (Bottom Summary) */}
            {result?.optimizationAnalysis && (
-             <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-6 rounded-3xl mb-4 relative overflow-hidden shadow-sm">
+             <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-6 rounded-3xl mb-6 relative overflow-hidden shadow-sm">
                  <div className="relative z-10">
-                    <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center gap-2 mb-4 pb-4 border-b border-emerald-100/50">
                        <span className="text-xl">💰</span>
-                       <h3 className="text-emerald-900 font-extrabold text-sm uppercase tracking-wide">Maximize Your Savings</h3>
+                       <h3 className="text-emerald-900 font-extrabold text-lg tracking-tight">Maximize Your Savings</h3>
                     </div>
                     
-                    <div className="flex justify-between items-end mb-4">
-                        <div className="text-3xl font-black text-emerald-800 tracking-tight">
-                           {result.optimizationAnalysis.totalPotentialReturn}
+                    <div className="flex justify-between items-end mb-6">
+                        <div>
+                            <div className="text-xs font-bold text-emerald-600 uppercase tracking-wide mb-1">Total Potential Return</div>
+                            <div className="text-3xl font-black text-emerald-800 tracking-tight leading-none">
+                                {result.optimizationAnalysis.totalPotentialReturn}
+                            </div>
                         </div>
-                        {estimatedEarnings && (
-                            <div className="text-right bg-white/60 px-3 py-1 rounded-lg border border-emerald-100/50">
-                                <div className="text-[10px] font-bold text-emerald-600 uppercase">Est. Earnings</div>
-                                <div className="text-lg font-black text-emerald-700">${estimatedEarnings}</div>
+                        {estimatedTotalEarnings && (
+                            <div className="text-right bg-white/60 px-3 py-2 rounded-xl border border-emerald-100/50 backdrop-blur-sm">
+                                <div className="text-[10px] font-bold text-emerald-600 uppercase mb-0.5">Total Est. Cash</div>
+                                <div className="text-xl font-black text-emerald-700 leading-none">${estimatedTotalEarnings}</div>
                             </div>
                         )}
                     </div>
@@ -1131,56 +1193,12 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
                        ))}
                     </div>
                  </div>
+                 {/* Decoration */}
+                 <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-400/10 rounded-full blur-2xl"></div>
              </div>
            )}
 
-           {/* Why this card? */}
-           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 p-6 rounded-3xl relative overflow-hidden shadow-sm space-y-4 mb-6">
-              <div className="relative z-10">
-                <h3 className="text-blue-900 font-bold text-sm uppercase tracking-wide mb-2">Why this card?</h3>
-                <p className="text-blue-900 text-lg font-medium leading-relaxed mb-4">
-                  {result?.reasoning}
-                </p>
-                {result?.estimatedReward && (
-                  <div className="inline-flex items-center px-4 py-2 bg-white/80 backdrop-blur-md border border-blue-200 text-blue-700 text-sm font-bold rounded-full shadow-sm">
-                    ✨ {result.estimatedReward}
-                  </div>
-                )}
-              </div>
-              
-              {/* Stacking Offers (Legacy/Fallback) */}
-              {result?.stackingInfo && (
-                <div className="relative z-10 pt-4 border-t border-blue-200/50">
-                  <h3 className="text-purple-700 font-bold text-sm uppercase tracking-wide mb-2 flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                    Extra Offers Found
-                  </h3>
-                  <div className="bg-white/60 p-3 rounded-xl text-purple-900 text-sm border border-purple-100">
-                    {result.stackingInfo}
-                  </div>
-                </div>
-              )}
-
-              {/* Sources */}
-              {result?.sources && result.sources.length > 0 && (
-                <div className="relative z-10 pt-4 mt-2">
-                   <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Sources</h4>
-                   <div className="flex flex-wrap gap-2">
-                     {result.sources.map((s, i) => (
-                       <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="text-[10px] bg-white border border-gray-200 px-2 py-1 rounded-md text-gray-500 hover:text-blue-600 hover:border-blue-300 truncate max-w-[150px]">
-                         {s.title}
-                       </a>
-                     ))}
-                   </div>
-                </div>
-              )}
-
-              {/* Decoration */}
-              <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-400/20 rounded-full blur-2xl"></div>
-              <div className="absolute -top-10 -left-10 w-40 h-40 bg-indigo-400/10 rounded-full blur-2xl"></div>
-           </div>
-
-           {/* High Value Purchase - Apply for New Card Banner - MOVED TO BOTTOM */}
+           {/* High Value Purchase - Apply for New Card Banner - Bottom */}
            {isHighValuePurchase && (
               <div className="mb-6 animate-fade-in-up delay-200">
                   <button 
