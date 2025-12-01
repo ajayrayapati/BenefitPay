@@ -17,6 +17,16 @@ const readFileAsBase64 = (file: File): Promise<string> => {
   });
 };
 
+const GENERIC_CARD: Partial<CreditCard> = {
+    bankName: 'Generic',
+    cardName: 'Cash / Debit',
+    network: CardType.OTHER,
+    colorTheme: '#64748b',
+    rewards: [{ category: 'General', rate: '1%', description: 'Base rate' }],
+    benefits: [],
+    nickName: 'CASH'
+};
+
 export default function App() {
   const [view, setView] = useState<AppView>(AppView.WALLET);
   const [cards, setCards] = useState<CreditCard[]>([]);
@@ -918,17 +928,20 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
     setErrorMsg('');
     setShowEmptyWalletOption(false);
 
-    if (cards.length === 0) {
-        setShowEmptyWalletOption(true);
-        setIsLoading(false);
-        return;
-    }
-
-    const query = `Buying "${item}" at "${merchant}" (${isOnline ? 'Online Transaction' : 'In-Person/Physical Store'})`;
+    // If wallet is empty, use GENERIC_CARD but still allow search
+    const activeCards = cards.length > 0 ? cards : [GENERIC_CARD as CreditCard];
     
-    const rec = await recommendBestCard(query, cards);
+    // If it's truly empty (no cards), we track this to show the "Add Card" prompt later
+    // But we still perform the search with the generic card to give results.
+    const isEmptyWallet = cards.length === 0;
+
+    const query = `Buying "${item}" at "${merchant}" (${isOnline ? 'Online Transaction' : 'In-Store/Physical'})`;
+    
+    const rec = await recommendBestCard(query, activeCards);
     if (rec) {
       setResult(rec);
+      // If we used the generic card, ensure we show options to find a real card
+      if (isEmptyWallet) setShowEmptyWalletOption(true);
     } else {
       setErrorMsg("AI service is currently busy or unavailable. Please check your card benefits manually.");
     }
@@ -999,21 +1012,22 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
       : null;
 
   const isHighValuePurchase = purchaseAmount && parseFloat(purchaseAmount) > 500;
+  const isGenericCard = result?.cardId === undefined || !cards.find(c => c.id === result?.cardId);
 
   return (
     <div className="px-6 py-12 flex flex-col h-full relative max-w-lg mx-auto w-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600">Ask AI-Smart Pay</h1>
-        {(result || errorMsg || showEmptyWalletOption) && (
+        {(result || errorMsg) && (
           <button onClick={clearResult} className="text-sm text-blue-600 font-bold hover:underline">New Search</button>
         )}
       </div>
       
-      {!result && !errorMsg && !showEmptyWalletOption ? (
+      {!result && !errorMsg ? (
         <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 mb-8 space-y-5 animate-fade-in-up">
           
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Product or Service</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Product or Service you would like to purchase</label>
             <input
               type="text"
               className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium"
@@ -1024,7 +1038,7 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Merchant or Place</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Preferred Merchant or Store</label>
             <input
               type="text"
               className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium"
@@ -1053,7 +1067,7 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
           </div>
           
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Purchase Amount ($) <span className="text-gray-400 font-normal">(Optional)</span></label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Potential Purchase Amount ($) <span className="text-gray-400 font-normal">(Optional)</span></label>
             <div className="relative">
                 <span className="absolute left-4 top-3.5 text-gray-500 font-bold">$</span>
                 <input
@@ -1070,24 +1084,6 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
           <div className="mt-4 pt-2">
              <Button onClick={handleAsk} isLoading={isLoading} disabled={!item || !merchant}>Find Best Card</Button>
           </div>
-        </div>
-      ) : showEmptyWalletOption ? (
-        <div className="animate-fade-in-up bg-blue-50 border border-blue-100 p-6 rounded-2xl text-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-               <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-            </div>
-            <h3 className="text-blue-800 font-bold mb-2">Wallet is Empty</h3>
-            <p className="text-blue-600 text-sm mb-6">Since no card is available in your wallet, we cannot provide specific wallet recommendations. You can add a card or check for a general market recommendation.</p>
-            
-            <div className="space-y-3">
-                <Button onClick={() => onViewChange(AppView.ADD_CARD)}>Add a Card</Button>
-                <button 
-                  onClick={handleEmptyWalletMarketSearch}
-                  className="w-full bg-white text-blue-600 border border-blue-200 py-3.5 rounded-xl font-bold text-[17px] active:scale-[0.98] transition-all hover:bg-blue-50"
-                >
-                  Find Recommended Card
-                </button>
-            </div>
         </div>
       ) : errorMsg ? (
         <div className="animate-fade-in-up bg-red-50 border border-red-100 p-6 rounded-2xl text-center">
@@ -1107,8 +1103,11 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
            
            {/* 1. Card & Stats Section (Top) */}
            <div className="transform transition-transform hover:scale-[1.02] duration-300">
-             {result && result.cardId && (
+             {(result?.cardId && cards.find(c => c.id === result.cardId)) ? (
                <CreditCardView card={cards.find(c => c.id === result.cardId) || {}} className="mb-4 shadow-2xl" />
+             ) : (
+                // Fallback view for Generic Card (Empty Wallet)
+                <CreditCardView card={GENERIC_CARD} className="mb-4 shadow-2xl opacity-90 grayscale-[0.5]" />
              )}
              
              {/* Card Stats Box */}
@@ -1250,10 +1249,10 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
            )}
 
            {/* High Value Purchase - Apply for New Card Banner - Bottom */}
-           {isHighValuePurchase && (
+           {(isHighValuePurchase || isGenericCard || showEmptyWalletOption) && (
               <div className="mb-6 animate-fade-in-up delay-200">
                   <button 
-                    onClick={handleFindBetterCard}
+                    onClick={isGenericCard ? handleEmptyWalletMarketSearch : handleFindBetterCard}
                     className="w-full bg-gradient-to-r from-amber-100 via-yellow-50 to-amber-100 border border-amber-200 p-5 rounded-3xl shadow-sm hover:shadow-md transition-all active:scale-[0.98] group relative overflow-hidden"
                   >
                      <div className="relative z-10 flex items-center justify-between">
@@ -1262,11 +1261,19 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                           </div>
                           <div className="text-left">
-                            <h3 className="font-bold text-amber-900 text-sm">Large Purchase Alert</h3>
-                            <p className="text-xs text-amber-700 mt-0.5">You could earn a bigger bonus on this purchase.</p>
+                            <h3 className="font-bold text-amber-900 text-sm">
+                                {isGenericCard ? "Unlock Higher Rewards" : "Large Purchase Alert"}
+                            </h3>
+                            <p className="text-xs text-amber-700 mt-0.5">
+                                {isGenericCard 
+                                    ? "Don't settle for 1%. Find a card that pays you back." 
+                                    : "You could earn a bigger bonus on this purchase."}
+                            </p>
                           </div>
                         </div>
-                        <span className="bg-amber-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-sm group-hover:bg-amber-600 transition-colors">Find Better Card</span>
+                        <span className="bg-amber-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-sm group-hover:bg-amber-600 transition-colors">
+                            {isGenericCard ? "Find Recommended Card" : "Find Better Card"}
+                        </span>
                      </div>
                      <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-amber-300/30 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
                   </button>
