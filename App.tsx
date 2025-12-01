@@ -905,6 +905,11 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
   // Empty Wallet State
   const [showEmptyWalletOption, setShowEmptyWalletOption] = useState(false);
 
+  // Check for Rakuten/Paypal
+  const hasRakuten = result?.stackingInfo?.toLowerCase().includes('rakuten') || result?.optimizationAnalysis?.stepsToMaximize.some(s => s.toLowerCase().includes('rakuten'));
+  const hasPaypal = result?.stackingInfo?.toLowerCase().includes('paypal') || result?.optimizationAnalysis?.stepsToMaximize.some(s => s.toLowerCase().includes('paypal'));
+
+
   const handleAsk = async () => {
     if (!item.trim() || !merchant.trim()) return;
     setIsLoading(true);
@@ -1107,7 +1112,7 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
              )}
              
              {/* Card Stats Box */}
-             <div className="flex justify-between items-center bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 shadow-sm">
+             <div className="flex justify-between items-center bg-blue-50 border border-blue-100 rounded-xl p-4 mb-2 shadow-sm relative z-10">
                  <div>
                     <div className="text-[10px] text-blue-500 font-bold uppercase tracking-wider mb-0.5">Card Rewards</div>
                     <div className="text-lg font-black text-blue-900">{result?.estimatedReward || "Standard Rate"}</div>
@@ -1119,6 +1124,31 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
                     </div>
                  )}
              </div>
+
+             {/* NEW: Max Potential Teaser */}
+             {result?.optimizationAnalysis && (
+                <button 
+                  onClick={() => {
+                    document.getElementById('maximization-dashboard')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="w-full flex items-center justify-between bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-xl p-3 mb-6 shadow-sm group"
+                >
+                    <div className="flex flex-col text-left">
+                        <div className="flex items-center gap-1">
+                           <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Potential Max Return</span>
+                           <span className="bg-emerald-100 text-emerald-600 text-[9px] px-1.5 py-0.5 rounded-full font-bold">STRETCH GOAL</span>
+                        </div>
+                        <div className="flex items-baseline gap-1 mt-0.5">
+                           <span className="text-lg font-black text-emerald-800">{result.optimizationAnalysis.totalPotentialReturn}</span>
+                           {estimatedTotalEarnings && <span className="text-sm font-bold text-emerald-700">(${estimatedTotalEarnings})</span>}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold bg-white/60 px-3 py-1.5 rounded-lg group-hover:bg-white transition-colors">
+                        <span>See How</span>
+                        <svg className="w-3 h-3 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                    </div>
+                </button>
+             )}
            </div>
 
            {/* 2. Reasoning & Detail Section */}
@@ -1160,7 +1190,7 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
            
            {/* 4. Maximize Your Savings Dashboard (Bottom Summary) */}
            {result?.optimizationAnalysis && (
-             <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-6 rounded-3xl mb-6 relative overflow-hidden shadow-sm">
+             <div id="maximization-dashboard" className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-6 rounded-3xl mb-6 relative overflow-hidden shadow-sm">
                  <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-4 pb-4 border-b border-emerald-100/50">
                        <span className="text-xl">💰</span>
@@ -1192,6 +1222,27 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
                          </div>
                        ))}
                     </div>
+
+                    {/* Quick Access Links */}
+                    {(hasRakuten || hasPaypal) && (
+                      <div className="mt-6 pt-4 border-t border-emerald-200/50">
+                          <h4 className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-3">Quick Actions</h4>
+                          <div className="flex gap-3">
+                              {hasRakuten && (
+                                  <a href="https://www.rakuten.com" target="_blank" rel="noopener noreferrer" className="flex-1 bg-white text-emerald-800 text-xs font-bold py-2.5 px-4 rounded-xl border border-emerald-200 hover:bg-emerald-50 flex items-center justify-center gap-2 transition-colors shadow-sm">
+                                      Open Rakuten
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                  </a>
+                              )}
+                              {hasPaypal && (
+                                  <a href="https://www.paypal.com" target="_blank" rel="noopener noreferrer" className="flex-1 bg-white text-emerald-800 text-xs font-bold py-2.5 px-4 rounded-xl border border-emerald-200 hover:bg-emerald-50 flex items-center justify-center gap-2 transition-colors shadow-sm">
+                                      Open PayPal
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                  </a>
+                              )}
+                          </div>
+                      </div>
+                    )}
                  </div>
                  {/* Decoration */}
                  <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-400/10 rounded-full blur-2xl"></div>
