@@ -597,7 +597,7 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
                 />
              </div>
              
-             <Button onClick={handleAnalyzeClick} disabled={(!name && !capturedImage) || isLoading} isLoading={isLoading}>Analyze Value</Button>
+             <Button onClick={handleAnalyzeClick} disabled={(!name && !capturedImage) || isLoading} isLoading={isLoading}>Analyze Product</Button>
           </div>
        </div>
 
