@@ -1,6 +1,7 @@
 
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { CardType, CreditCard, RecommendationResult, MarketRecommendation } from "../types";
+import { CardType, CreditCard, RecommendationResult, MarketRecommendation, ProductResearchResult } from "../types";
 
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -298,3 +299,79 @@ export const findBetterMarketCard = async (
       return null;
     }
   };
+
+/**
+ * Step 5: Payment Research (Price History, Sentiment, Alternatives)
+ * Supports Multimodal (Image) or Text
+ */
+export const performProductResearch = async (
+  input: { name: string; model?: string; price?: string; store?: string },
+  image?: string // Base64 string for scanned barcode/product
+): Promise<ProductResearchResult | null> => {
+
+  const hasImage = !!image;
+  const productDesc = `${input.name} ${input.model || ''}`;
+  const priceCtx = input.price ? `User sees price: $${input.price}` : 'No price provided';
+  const storeCtx = input.store ? `at store: ${input.store}` : 'at general market';
+  
+  // Construct parts: Text Prompt + Optional Image
+  const promptText = `
+  Task: Product Price-to-Value Research.
+  ${hasImage ? "Identify the product in the image/barcode." : ""}
+  User Query: "${productDesc}" ${priceCtx} ${storeCtx}.
+
+  STRICT INSTRUCTIONS:
+  1. Use Google Search to find the EXACT REAL-TIME PRICE of this specific model at major retailers (Amazon, Best Buy, Walmart, Target). 
+     DO NOT HALLUCINATE PRICES. If you can't find it, verify the MSRP.
+  2. Compare the user's observed price ($${input.price || 'N/A'}) vs the market best price.
+  3. Verdict: Is it a 'Good Buy' (Cheaper than market), 'Overpriced' (More expensive than Amazon/BestBuy), or 'Wait' (Price trending down)?
+  4. Generate 6-month price history based on general market trends for this category/product.
+  5. Find 3 SPECIFIC alternatives that offer better value.
+
+  Output ONLY raw JSON:
+  {
+    "productName": "string (identified product full name)",
+    "currentPrice": "string (e.g. $199)",
+    "verdict": "Good Buy" | "Wait" | "Overpriced",
+    "verdictReason": "string (Comparison: 'Amazon has it for $150 vs your $199...')",
+    "priceHistory": [
+       {"month": "string (e.g. Jan)", "price": number} 
+       // Provide exactly 6 data points representing last 6 months
+    ],
+    "sentimentScore": number (0-100),
+    "sentimentSummary": "string (Summarize real user reviews)",
+    "alternatives": [
+       { "name": "string", "price": "string", "whyBetter": "string" }
+    ]
+  }
+  `;
+
+  const parts: any[] = [{ text: promptText }];
+  if (image) {
+    // Gemini accepts base64 data without the prefix 'data:image/...;base64,'
+    const base64Clean = image.split(',')[1] || image;
+    parts.unshift({
+      inlineData: {
+        mimeType: "image/jpeg",
+        data: base64Clean
+      }
+    });
+  }
+
+  try {
+    const response = await safeGenerateContent(MODEL_FAST, {
+      contents: { parts },
+      config: {
+        tools: [{ googleSearch: {} }]
+      }
+    });
+
+    const text = response.text;
+    if (!text) return null;
+
+    return JSON.parse(cleanJson(text)) as ProductResearchResult;
+  } catch (error) {
+    console.error("Error performing research:", error);
+    return null;
+  }
+};

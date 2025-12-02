@@ -1,4 +1,5 @@
 
+
 export enum CardType {
   VISA = 'VISA',
   MASTERCARD = 'MASTERCARD',
@@ -66,9 +67,33 @@ export interface MarketRecommendation {
   applySearchQuery: string; // String to construct google search link
 }
 
+// --- PRODUCT RESEARCH TYPES ---
+export interface PricePoint {
+  month: string; // e.g. "Jan"
+  price: number;
+}
+
+export interface ProductAlternative {
+  name: string;
+  price: string;
+  whyBetter: string; // Value proposition
+}
+
+export interface ProductResearchResult {
+  productName: string;
+  currentPrice: string;
+  verdict: 'Good Buy' | 'Wait' | 'Overpriced';
+  verdictReason: string;
+  priceHistory: PricePoint[]; // For Last 6 Months Graph
+  sentimentScore: number; // 0 to 100
+  sentimentSummary: string;
+  alternatives: ProductAlternative[];
+}
+
 export enum AppView {
   WALLET = 'WALLET',
   ADD_CARD = 'ADD_CARD',
   RECOMMEND = 'RECOMMEND',
+  RESEARCH = 'RESEARCH',
   HELP = 'HELP'
 }
