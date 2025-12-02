@@ -53,9 +53,10 @@ const MaximizationDashboard: React.FC<{ result: RecommendationResult, purchaseAm
       ? calculateCashbackValue(result.optimizationAnalysis.totalPotentialReturn, purchaseAmount) 
       : null;
 
-    // Check for Rakuten/Paypal
+    // Check for Rakuten/Paypal/Capital One
     const hasRakuten = result.stackingInfo?.toLowerCase().includes('rakuten') || result.optimizationAnalysis?.stepsToMaximize.some(s => s.toLowerCase().includes('rakuten'));
     const hasPaypal = result.stackingInfo?.toLowerCase().includes('paypal') || result.optimizationAnalysis?.stepsToMaximize.some(s => s.toLowerCase().includes('paypal'));
+    const hasCapOne = result.stackingInfo?.toLowerCase().includes('capital one') || result.optimizationAnalysis?.stepsToMaximize.some(s => s.toLowerCase().includes('capital one'));
 
     if (!result.optimizationAnalysis) return null;
 
@@ -94,19 +95,25 @@ const MaximizationDashboard: React.FC<{ result: RecommendationResult, purchaseAm
                 </div>
 
                 {/* Quick Access Links */}
-                {(hasRakuten || hasPaypal) && (
+                {(hasRakuten || hasPaypal || hasCapOne) && (
                     <div className="mt-6 pt-4 border-t border-emerald-200/50">
                         <h4 className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-3">Quick Actions</h4>
-                        <div className="flex gap-3">
+                        <div className="flex flex-wrap gap-2">
                             {hasRakuten && (
-                                <a href="https://www.rakuten.com" target="_blank" rel="noopener noreferrer" className="flex-1 bg-white text-emerald-800 text-xs font-bold py-2.5 px-4 rounded-xl border border-emerald-200 hover:bg-emerald-50 flex items-center justify-center gap-2 transition-colors shadow-sm">
+                                <a href="https://www.rakuten.com" target="_blank" rel="noopener noreferrer" className="flex-1 min-w-[120px] bg-white text-emerald-800 text-xs font-bold py-2.5 px-4 rounded-xl border border-emerald-200 hover:bg-emerald-50 flex items-center justify-center gap-2 transition-colors shadow-sm">
                                     Open Rakuten
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                                 </a>
                             )}
                             {hasPaypal && (
-                                <a href="https://www.paypal.com" target="_blank" rel="noopener noreferrer" className="flex-1 bg-white text-emerald-800 text-xs font-bold py-2.5 px-4 rounded-xl border border-emerald-200 hover:bg-emerald-50 flex items-center justify-center gap-2 transition-colors shadow-sm">
+                                <a href="https://www.paypal.com" target="_blank" rel="noopener noreferrer" className="flex-1 min-w-[120px] bg-white text-emerald-800 text-xs font-bold py-2.5 px-4 rounded-xl border border-emerald-200 hover:bg-emerald-50 flex items-center justify-center gap-2 transition-colors shadow-sm">
                                     Open PayPal
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                </a>
+                            )}
+                            {hasCapOne && (
+                                <a href="https://capitaloneshopping.com" target="_blank" rel="noopener noreferrer" className="flex-1 min-w-[120px] bg-white text-emerald-800 text-xs font-bold py-2.5 px-4 rounded-xl border border-emerald-200 hover:bg-emerald-50 flex items-center justify-center gap-2 transition-colors shadow-sm">
+                                    Open CapOne Shop
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                                 </a>
                             )}
@@ -326,7 +333,7 @@ const WalletView: React.FC<{
 
       <div className="mb-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
         <p className="text-sm text-blue-900 leading-relaxed">
-          Simple smart pay app which provides recommendations on what credit card to use based on your wallet, plus finds real-time cashback stacking offers (Rakuten/PayPal) to maximize your savings.
+          Simple smart pay app which provides recommendations on what credit card to use based on your wallet, plus finds real-time cashback stacking offers (Rakuten, PayPal, Capital One Shopping) to maximize your savings.
         </p>
       </div>
 
@@ -798,7 +805,7 @@ const HelpView: React.FC = () => {
              <h3 className="font-bold text-lg text-gray-900">Ask AI</h3>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed">
-            The core feature. Enter what you are buying (e.g., "iPhone") and where (e.g., "Apple Store"). The AI recommends the best card from your wallet and simultaneously checks for "Stacking Opportunities" (extra cashback from Rakuten or PayPal) to help you double-dip on rewards.
+            The AI recommends the best card from your wallet and simultaneously checks for "Stacking Opportunities" (extra cashback from Rakuten, PayPal, or Capital One Shopping) to help you double-dip on rewards.
           </p>
         </div>
 

@@ -201,7 +201,7 @@ export const recommendBestCard = async (
   User transaction: "${query}".
   
   Task:
-  1. Use Google Search to find current Rakuten or PayPal cashback offers for this merchant.
+  1. Use Google Search to find current Rakuten, PayPal, or Capital One Shopping cashback offers for this merchant.
   2. Analyze the user's wallet to find the best credit card for points/benefits.
   3. CALCULATE THE TOTAL VALUE: Add the Credit Card Reward (approx %) + Stacking Offer (%).
   4. Create a strategy checklist to maximize this savings.
@@ -214,7 +214,7 @@ export const recommendBestCard = async (
     "cardId": "string (id of best card)",
     "reasoning": "string (why this card + warranty info)",
     "estimatedReward": "string (e.g. '3% back from card')",
-    "stackingInfo": "string (e.g. 'Rakuten offers additional 5% cashback.')",
+    "stackingInfo": "string (e.g. 'Rakuten offers additional 5% cashback. Capital One Shopping has exclusive rewards.')",
     "optimizationAnalysis": {
         "totalPotentialReturn": "string (e.g. 'Total ~8% Return')",
         "stepsToMaximize": ["string (Step 1: Activate Rakuten)", "string (Step 2: Use Amex Gold)"]
