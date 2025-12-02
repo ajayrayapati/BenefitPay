@@ -302,26 +302,26 @@ export const findBetterMarketCard = async (
 
 /**
  * Step 5: Payment Research (Price History, Sentiment, Alternatives)
- * Supports Multimodal (Image) or Text
+ * Supports Multimodal (Image) or Text. Now supports Barcode text override.
  */
 export const performProductResearch = async (
-  input: { name: string; model?: string; price?: string; store?: string },
+  input: { name: string; model?: string; price?: string; store?: string; barcode?: string },
   image?: string // Base64 string for scanned barcode/product
 ): Promise<ProductResearchResult | null> => {
 
   const hasImage = !!image;
-  const productDesc = `${input.name} ${input.model || ''}`;
+  const productDesc = input.barcode ? `Product with Barcode/UPC: ${input.barcode}` : `${input.name} ${input.model || ''}`;
   const priceCtx = input.price ? `User sees price: $${input.price}` : 'No price provided';
   const storeCtx = input.store ? `at store: ${input.store}` : 'at general market';
   
   // Construct parts: Text Prompt + Optional Image
   const promptText = `
   Task: Product Price-to-Value Research.
-  ${hasImage ? "Identify the product in the image/barcode." : ""}
+  ${hasImage ? "Identify the product in the image." : ""}
   User Query: "${productDesc}" ${priceCtx} ${storeCtx}.
 
   STRICT INSTRUCTIONS:
-  1. Use Google Search to find the EXACT REAL-TIME PRICE of this specific model at major retailers (Amazon, Best Buy, Walmart, Target). 
+  1. Use Google Search to find the EXACT REAL-TIME PRICE of this specific model (or Barcode ${input.barcode || 'N/A'}) at major retailers (Amazon, Best Buy, Walmart, Target). 
      DO NOT HALLUCINATE PRICES. If you can't find it, verify the MSRP.
   2. Compare the user's observed price ($${input.price || 'N/A'}) vs the market best price.
   3. Verdict: Is it a 'Good Buy' (Cheaper than market), 'Overpriced' (More expensive than Amazon/BestBuy), or 'Wait' (Price trending down)?

@@ -375,17 +375,38 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Zoom State
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [maxZoom, setMaxZoom] = useState(1);
+  const [supportsZoom, setSupportsZoom] = useState(false);
+
   // Scroll ref
   const alternativesRef = useRef<HTMLDivElement>(null);
 
   const startCamera = async () => {
     setShowCamera(true);
+    setZoomLevel(1);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
+        video: { 
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+        } 
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        
+        // Check Zoom Capabilities
+        const track = stream.getVideoTracks()[0];
+        const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+        if ('zoom' in capabilities) {
+            setSupportsZoom(true);
+            // @ts-ignore
+            setMaxZoom(capabilities.zoom.max || 10);
+        } else {
+            setSupportsZoom(false);
+        }
       }
     } catch (e) {
       alert("Unable to access camera. Please ensure permissions are granted.");
@@ -401,7 +422,57 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
     setShowCamera(false);
   };
 
-  const captureAndResearch = async () => {
+  const handleZoomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newZoom = parseFloat(e.target.value);
+      setZoomLevel(newZoom);
+      if (videoRef.current && videoRef.current.srcObject) {
+          const stream = videoRef.current.srcObject as MediaStream;
+          const track = stream.getVideoTracks()[0];
+          // @ts-ignore
+          if (track.applyConstraints) {
+             // @ts-ignore
+             track.applyConstraints({ advanced: [{ zoom: newZoom }] }).catch(err => console.log(err));
+          }
+      }
+  }
+
+  // --- Auto-Detect Barcode Logic ---
+  useEffect(() => {
+    let interval: any;
+    // Check if API exists
+    // @ts-ignore
+    if (showCamera && videoRef.current && 'BarcodeDetector' in window) {
+      // @ts-ignore
+      const detector = new window.BarcodeDetector({
+        formats: ['qr_code', 'ean_13', 'ean_8', 'upc_a', 'upc_e']
+      });
+
+      const scan = async () => {
+        if (!videoRef.current || videoRef.current.paused || videoRef.current.ended) return;
+        try {
+           const barcodes = await detector.detect(videoRef.current);
+           if (barcodes.length > 0) {
+              const code = barcodes[0].rawValue;
+              if (code) {
+                  // Vibrate for feedback
+                  if (navigator.vibrate) navigator.vibrate(200);
+                  clearInterval(interval);
+                  // Auto-capture
+                  captureAndResearch(code);
+              }
+           }
+        } catch(e) {
+           console.log("Barcode detection error", e);
+        }
+      };
+      
+      // Scan every 500ms
+      interval = setInterval(scan, 500);
+    }
+    return () => clearInterval(interval);
+  }, [showCamera]);
+
+  const captureAndResearch = async (barcodeValue?: string) => {
     if (!videoRef.current || !canvasRef.current) return;
     
     // Draw frame to canvas
@@ -414,7 +485,7 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
     const imageData = canvasRef.current.toDataURL('image/jpeg');
     
     stopCamera();
-    await executeResearch(imageData);
+    await executeResearch(imageData, barcodeValue);
   };
 
   const handleTextResearch = async () => {
@@ -422,13 +493,20 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
     await executeResearch();
   };
 
-  const executeResearch = async (imageData?: string) => {
+  const executeResearch = async (imageData?: string, barcodeValue?: string) => {
       setIsLoading(true);
       setResult(null);
       setRecResult(null);
 
       // 1. Product Research
-      const res = await performProductResearch({ name: name || 'Scanned Item', model, price, store }, imageData);
+      const res = await performProductResearch({ 
+          name: name || (barcodeValue ? 'Scanned Item' : 'Item'), 
+          model, 
+          price, 
+          store,
+          barcode: barcodeValue 
+      }, imageData);
+      
       setResult(res);
 
       // 2. Parallel Recommendation (Maximization)
@@ -602,33 +680,68 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
          </div>
        )}
 
-       {/* Camera Modal */}
+       {/* Camera Modal with Dynamic Viewport Height and Safe Area Padding */}
        {showCamera && (
-         <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+         <div className="fixed inset-0 z-[100] bg-black flex flex-col h-[100dvh]">
+            {/* Video takes up all available space */}
             <video ref={videoRef} autoPlay playsInline className="flex-1 w-full h-full object-cover"></video>
             <canvas ref={canvasRef} className="hidden"></canvas>
             
-            <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent">
-               <span className="text-white font-bold text-sm">Scan Product / Barcode</span>
-               <button onClick={stopCamera} className="text-white font-bold bg-white/20 rounded-full w-8 h-8 flex items-center justify-center">✕</button>
+            {/* Top Bar */}
+            <div className="absolute top-0 left-0 w-full p-4 pt-safe flex justify-between items-center bg-gradient-to-b from-black/60 to-transparent z-10">
+               <span className="text-white font-bold text-sm drop-shadow-md">
+                   Scan Barcode or Product
+               </span>
+               <button onClick={stopCamera} className="text-white font-bold bg-white/20 backdrop-blur-md rounded-full w-8 h-8 flex items-center justify-center">✕</button>
             </div>
 
-            <div className="absolute bottom-0 w-full p-6 bg-gradient-to-t from-black/80 to-transparent flex justify-center pb-10">
-               <button 
-                 onClick={captureAndResearch}
-                 className="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center bg-white/20 active:bg-white/50 transition-all"
-               >
-                 <div className="w-12 h-12 bg-white rounded-full"></div>
-               </button>
+            {/* Bottom Controls Bar with Safe Area Padding */}
+            <div className="absolute bottom-0 w-full p-6 pb-safe bg-gradient-to-t from-black/90 to-transparent flex flex-col items-center justify-end z-10 space-y-6">
+               
+               {/* Zoom Slider (if supported) */}
+               {supportsZoom && (
+                   <div className="w-full max-w-xs flex items-center gap-3 px-4">
+                       <span className="text-[10px] text-white font-bold">1x</span>
+                       <input 
+                         type="range" 
+                         min="1" 
+                         max={maxZoom} 
+                         step="0.1" 
+                         value={zoomLevel} 
+                         onChange={handleZoomChange}
+                         className="flex-1 h-1 bg-white/30 rounded-lg appearance-none cursor-pointer accent-white"
+                       />
+                       <span className="text-[10px] text-white font-bold">{Math.round(maxZoom)}x</span>
+                   </div>
+               )}
+
+               <div className="flex flex-col items-center">
+                    <button 
+                        onClick={() => captureAndResearch()}
+                        className="w-20 h-20 rounded-full border-[5px] border-white flex items-center justify-center bg-white/20 active:bg-white/50 transition-all shadow-lg"
+                    >
+                        <div className="w-16 h-16 bg-white rounded-full"></div>
+                    </button>
+                    {/* @ts-ignore */}
+                    {'BarcodeDetector' in window && (
+                        <p className="text-white/80 text-[10px] mt-3 font-medium animate-pulse">
+                            Auto-detecting Barcodes...
+                        </p>
+                    )}
+               </div>
             </div>
             
             {/* Viewfinder Overlay */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                <div className="w-64 h-64 border-2 border-white/50 rounded-xl relative">
-                  <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-white -mt-1 -ml-1"></div>
-                  <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-white -mt-1 -mr-1"></div>
-                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-white -mb-1 -ml-1"></div>
-                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-white -mb-1 -mr-1"></div>
+                  <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white -mt-1 -ml-1 rounded-tl-sm"></div>
+                  <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white -mt-1 -mr-1 rounded-tr-sm"></div>
+                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white -mb-1 -ml-1 rounded-bl-sm"></div>
+                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white -mb-1 -mr-1 rounded-br-sm"></div>
+                  
+                  {/* Center Crosshair */}
+                  <div className="absolute top-1/2 left-1/2 w-4 h-[1px] bg-white/50 -translate-x-1/2"></div>
+                  <div className="absolute top-1/2 left-1/2 h-4 w-[1px] bg-white/50 -translate-y-1/2"></div>
                </div>
             </div>
          </div>
@@ -1653,4 +1766,3 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
     </div>
   );
 };
-
