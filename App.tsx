@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { AppView, CreditCard, CardType, CardDocument, RecommendationResult, MarketRecommendation, ProductResearchResult } from './types';
 import { searchCardsByBank, fetchCardDetails, recommendBestCard, findBetterMarketCard, performProductResearch } from './services/geminiService';
@@ -378,6 +375,7 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
   const [recResult, setRecResult] = useState<RecommendationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
   
   // Camera Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -465,8 +463,8 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
                   // Vibrate for feedback
                   if (navigator.vibrate) navigator.vibrate(200);
                   clearInterval(interval);
-                  // Auto-capture
-                  captureAndResearch(code);
+                  // Auto-capture but DO NOT research immediately
+                  handleCameraCapture(code);
               }
            }
         } catch(e) {
@@ -480,7 +478,7 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
     return () => clearInterval(interval);
   }, [showCamera]);
 
-  const captureAndResearch = async (barcodeValue?: string) => {
+  const handleCameraCapture = async (barcodeValue?: string) => {
     if (!videoRef.current || !canvasRef.current) return;
     
     // Draw frame to canvas
@@ -492,14 +490,34 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
     // Get Base64
     const imageData = canvasRef.current.toDataURL('image/jpeg');
     
+    // Set state
+    setCapturedImage(imageData);
+    if (barcodeValue) {
+        setName(`Barcode: ${barcodeValue}`);
+    }
+
     stopCamera();
-    await executeResearch(imageData, barcodeValue);
+    // Intentionally NOT calling executeResearch here
   };
 
-  const handleTextResearch = async () => {
-    if (!name) return;
-    await executeResearch();
+  const handleAnalyzeClick = async () => {
+    if (!name && !capturedImage) return;
+    
+    // If name contains "Barcode:", extract it
+    let barcodeVal = undefined;
+    if (name.startsWith('Barcode: ')) {
+        barcodeVal = name.replace('Barcode: ', '').trim();
+    }
+    
+    await executeResearch(capturedImage || undefined, barcodeVal);
   };
+
+  const clearCapturedImage = () => {
+      setCapturedImage(null);
+      if (name.startsWith('Barcode: ')) {
+          setName('');
+      }
+  }
 
   const executeResearch = async (imageData?: string, barcodeValue?: string) => {
       setIsLoading(true);
@@ -542,14 +560,22 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
        <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 mb-6">
           <div className="space-y-4">
              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  className="flex-1 bg-gray-50 border-0 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Product Name (e.g. Sony WH-1000XM5)"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                />
-                <button onClick={startCamera} className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-3 rounded-xl transition-colors" title="Scan Barcode/Product">
+                <div className="flex-1 relative">
+                    <input 
+                    type="text" 
+                    className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Product Name (e.g. Sony WH-1000XM5)"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    />
+                    {capturedImage && (
+                        <div className="absolute right-2 top-1.5 h-8 w-8 rounded-lg overflow-hidden border border-gray-200 shadow-sm group cursor-pointer" onClick={clearCapturedImage} title="Clear Image">
+                            <img src={capturedImage} className="w-full h-full object-cover" alt="Captured" />
+                            <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center text-white text-[10px]">✕</div>
+                        </div>
+                    )}
+                </div>
+                <button onClick={startCamera} className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-3 rounded-xl transition-colors shrink-0" title="Scan Barcode/Product">
                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
                 </button>
              </div>
@@ -571,7 +597,7 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
                 />
              </div>
              
-             <Button onClick={handleTextResearch} disabled={!name && !showCamera} isLoading={isLoading}>Analyze Value</Button>
+             <Button onClick={handleAnalyzeClick} disabled={(!name && !capturedImage) || isLoading} isLoading={isLoading}>Analyze Value</Button>
           </div>
        </div>
 
@@ -725,7 +751,7 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
 
                <div className="flex flex-col items-center">
                     <button 
-                        onClick={() => captureAndResearch()}
+                        onClick={() => handleCameraCapture()}
                         className="w-20 h-20 rounded-full border-[5px] border-white flex items-center justify-center bg-white/20 active:bg-white/50 transition-all shadow-lg"
                     >
                         <div className="w-16 h-16 bg-white rounded-full"></div>
