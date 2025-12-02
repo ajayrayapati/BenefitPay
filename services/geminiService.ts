@@ -23,24 +23,57 @@ const FALLBACK_COMMON_CARDS: Record<string, string[]> = {
   'DEFAULT': ['Premium Rewards', 'Cash Back', 'Travel Card', 'Points Card', 'Platinum']
 };
 
-// Helper: Clean JSON string from Markdown
+// Helper: Clean JSON string from Markdown or conversational text
 const cleanJson = (text: string): string => {
   if (!text) return "[]";
   let clean = text.trim();
-  // Handle markdown code blocks
+  
+  // Search for the outermost JSON object or array
+  const startObj = clean.indexOf('{');
+  const startArr = clean.indexOf('[');
+  
+  let startIndex = -1;
+  let endIndex = -1;
+
+  // Determine if it starts as an Object or Array
+  if (startObj !== -1 && (startArr === -1 || startObj < startArr)) {
+    startIndex = startObj;
+    endIndex = clean.lastIndexOf('}');
+  } else if (startArr !== -1) {
+    startIndex = startArr;
+    endIndex = clean.lastIndexOf(']');
+  }
+
+  // If a valid JSON structure is found embedded in text, extract it
+  if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+    return clean.substring(startIndex, endIndex + 1);
+  }
+
+  // Fallback for standard markdown blocks if simple search fails
   if (clean.startsWith('```json')) {
     clean = clean.replace(/^```json\s*/, '').replace(/\s*```$/, '');
   } else if (clean.startsWith('```')) {
     clean = clean.replace(/^```\s*/, '').replace(/\s*```$/, '');
   }
   
-  // Heuristic: Attempt to cut off trailing garbage if JSON seems cut off or malformed
-  const lastBrace = clean.lastIndexOf('}');
-  if (lastBrace !== -1 && lastBrace < clean.length - 1) {
-    clean = clean.substring(0, lastBrace + 1);
-  }
-  
   return clean;
+}
+
+// Helper: Try Parse JSON with auto-repair for common LLM errors
+const tryParseJson = (jsonString: string) => {
+  try {
+    return JSON.parse(jsonString);
+  } catch (e) {
+    // Attempt to fix common JSON errors from LLMs
+    // 1. Fix missing commas between objects in arrays: } { -> }, {
+    // 2. Fix unescaped newlines (basic attempt)
+    try {
+      let fixed = jsonString.replace(/}\s*\{/g, '}, {');
+      return JSON.parse(fixed);
+    } catch (e2) {
+      throw e; // Throw original error if fix fails
+    }
+  }
 }
 
 // Helper: Delay for backoff
@@ -94,7 +127,7 @@ export const searchCardsByBank = async (bankName: string): Promise<string[]> => 
     
     const text = response.text;
     if (!text) throw new Error("Empty response");
-    return JSON.parse(cleanJson(text)) as string[];
+    return tryParseJson(cleanJson(text)) as string[];
   } catch (error) {
     console.warn("Error searching cards, using fallback:", error);
     const normalizedBank = bankName.toUpperCase();
@@ -107,20 +140,16 @@ export const searchCardsByBank = async (bankName: string): Promise<string[]> => 
  * Step 2: Get detailed info (Rewards & Benefits) for a selected card
  */
 export const fetchCardDetails = async (cardName: string, bankName: string): Promise<Partial<CreditCard>> => {
-  const prompt = `Provide details for: "${bankName} ${cardName}".
+  // Simplified prompt to avoid confusing the model with conflicting format instructions vs schema
+  const prompt = `Provide details for the credit card: "${bankName} ${cardName}".
   
-  Output JSON format:
-  {
-    "network": "VISA" | "MASTERCARD" | "AMEX" | "DISCOVER",
-    "colorTheme": "#RRGGBB" (hex for card branding),
-    "rewards": [{"category": "Dining", "rate": "3x", "description": "Global restaurants"}],
-    "benefits": [{"title": "Purchase Protection", "description": "Brief summary"}]
-  }
-
-  Constraints:
-  - Max 5 rewards categories.
-  - Max 5 key benefits.
-  - Keep descriptions UNDER 15 WORDS. Be concise.
+  Populate the following fields based on the provided schema:
+  - network (e.g. VISA, AMEX)
+  - colorTheme (Hex code matching the card's physical look)
+  - rewards (List top 5 categories with rates)
+  - benefits (List top 5 key benefits like insurance, warranties)
+  
+  Keep descriptions concise (under 10 words).
   `;
 
   const schema: Schema = {
@@ -164,7 +193,7 @@ export const fetchCardDetails = async (cardName: string, bankName: string): Prom
 
     const text = response.text;
     if (!text) throw new Error("No data returned from Gemini");
-    return JSON.parse(cleanJson(text));
+    return tryParseJson(cleanJson(text));
   } catch (error) {
     console.error("Error fetching card details, using template:", error);
     return {
@@ -205,6 +234,7 @@ export const recommendBestCard = async (
   2. Analyze the user's wallet to find the best credit card for points/benefits.
   3. CALCULATE THE TOTAL VALUE: Add the Credit Card Reward (approx %) + Stacking Offer (%).
   4. Create a strategy checklist to maximize this savings.
+  5. If user provided a dollar amount, use it for calculations.
 
   Wallet Data:
   ${JSON.stringify(walletSummary, null, 2)}
@@ -233,7 +263,7 @@ export const recommendBestCard = async (
     const text = response.text;
     if (!text) return null;
 
-    const parsed = JSON.parse(cleanJson(text)) as RecommendationResult;
+    const parsed = tryParseJson(cleanJson(text)) as RecommendationResult;
     
     if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
       const chunks = response.candidates[0].groundingMetadata.groundingChunks;
@@ -293,7 +323,7 @@ export const findBetterMarketCard = async (
       const text = response.text;
       if (!text) return null;
   
-      return JSON.parse(cleanJson(text)) as MarketRecommendation;
+      return tryParseJson(cleanJson(text)) as MarketRecommendation;
     } catch (error) {
       console.error("Error finding market card:", error);
       return null;
@@ -328,7 +358,13 @@ export const performProductResearch = async (
   4. Generate 6-month price history based on general market trends for this category/product.
   5. Find 3 SPECIFIC alternatives that offer better value.
 
-  Output ONLY raw JSON:
+  IMPORTANT:
+  - Your response MUST BE A VALID JSON OBJECT only.
+  - Do NOT output conversational text like "Here is the research".
+  - Do NOT output markdown formatting like \`\`\`json.
+  - Start the response immediately with {.
+
+  Output Schema:
   {
     "productName": "string (identified product full name)",
     "currentPrice": "string (e.g. $199)",
@@ -369,7 +405,7 @@ export const performProductResearch = async (
     const text = response.text;
     if (!text) return null;
 
-    return JSON.parse(cleanJson(text)) as ProductResearchResult;
+    return tryParseJson(cleanJson(text)) as ProductResearchResult;
   } catch (error) {
     console.error("Error performing research:", error);
     return null;

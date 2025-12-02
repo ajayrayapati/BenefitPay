@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AppView } from '../types';
 
@@ -78,7 +79,7 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
         className="flex flex-col items-center justify-center flex-1 space-y-1 active:scale-95 transition-transform"
       >
         {getIcon(AppView.RESEARCH, currentView === AppView.RESEARCH)}
-        <span className={`text-[10px] font-bold ${currentView === AppView.RESEARCH ? 'text-blue-600' : 'text-gray-400'}`}>Research</span>
+        <span className={`text-[10px] font-bold ${currentView === AppView.RESEARCH ? 'text-blue-600' : 'text-gray-400'} whitespace-nowrap`}>Product Research</span>
       </button>
 
       <button 

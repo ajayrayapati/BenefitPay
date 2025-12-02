@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { AppView, CreditCard, CardType, CardDocument, RecommendationResult, MarketRecommendation, ProductResearchResult } from './types';
 import { searchCardsByBank, fetchCardDetails, recommendBestCard, findBetterMarketCard, performProductResearch } from './services/geminiService';
@@ -564,7 +565,7 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
                 <input 
                   type="number" 
                   className="w-24 bg-gray-50 border-0 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Price"
+                  placeholder="$ US Price"
                   value={price}
                   onChange={e => setPrice(e.target.value)}
                 />
