@@ -77,6 +77,7 @@ export interface ProductAlternative {
   name: string;
   price: string;
   whyBetter: string; // Value proposition
+  link?: string; // URL or search query for the product
 }
 
 export interface ProductResearchResult {

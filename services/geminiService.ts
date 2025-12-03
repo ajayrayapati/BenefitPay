@@ -410,7 +410,12 @@ export const performProductResearch = async (
     "sentimentScore": number (0-100),
     "sentimentSummary": "string (Summarize real user reviews)",
     "alternatives": [
-       { "name": "string", "price": "string", "whyBetter": "string" }
+       { 
+         "name": "string", 
+         "price": "string", 
+         "whyBetter": "string",
+         "link": "string (URL to product or query)"
+       }
     ]
   }
   `;
