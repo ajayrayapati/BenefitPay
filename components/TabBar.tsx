@@ -62,7 +62,7 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
         className="flex flex-col items-center justify-center flex-1 space-y-1 active:scale-95 transition-transform"
       >
         {getIcon(AppView.RECOMMEND, currentView === AppView.RECOMMEND)}
-        <span className={`text-[10px] font-bold ${currentView === AppView.RECOMMEND ? 'text-blue-600' : 'text-gray-400'}`}>Ask AI</span>
+        <span className={`text-[10px] font-bold ${currentView === AppView.RECOMMEND ? 'text-blue-600' : 'text-gray-400'}`}>AI Recommendation</span>
       </button>
 
       <button 

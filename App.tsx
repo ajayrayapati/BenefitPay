@@ -842,7 +842,7 @@ const HelpView: React.FC = () => {
                   <path fillRule="evenodd" d="M10.5 3.75a6.75 6.75 0 100 13.5 6.75 6.75 0 000-13.5zM2.25 10.5a8.25 8.25 0 1114.59 5.28l4.69 4.69a.75.75 0 11-1.06 1.06l-4.69-4.69A8.25 8.25 0 012.25 10.5z" clipRule="evenodd" />
                </svg>
              </div>
-             <h3 className="font-bold text-lg text-gray-900">Ask AI</h3>
+             <h3 className="font-bold text-lg text-gray-900">AI Recommendation</h3>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed">
             The AI recommends the best card from your wallet and simultaneously checks for "Stacking Opportunities" (extra cashback from Rakuten, PayPal, or Capital One Shopping) to help you double-dip on rewards.
