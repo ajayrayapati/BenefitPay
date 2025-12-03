@@ -1568,7 +1568,7 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
         <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 mb-8 space-y-5 animate-fade-in-up">
           
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Product or Service you would like to purchase</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Product or Service you are looking to purchase</label>
             <input
               type="text"
               className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium"
