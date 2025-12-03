@@ -1239,7 +1239,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
         </div>
   
         <div className="space-y-4">
-          <label className="block text-sm font-bold text-gray-700">Bank or Merchant Name <span className="text-gray-400 font-normal text-xs">(e.g. Chase or Macy's)</span></label>
+          <label className="block text-sm font-bold text-gray-700">Your Card Bank or Merchant Name <span className="text-gray-400 font-normal text-xs">(e.g. Chase or Macy's)</span></label>
           <div className="flex gap-2">
               <input 
                 type="text" 
