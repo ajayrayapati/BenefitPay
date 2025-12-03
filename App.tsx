@@ -254,7 +254,7 @@ export default function App() {
       {/* Settings / Data Management Modal */}
       {showSettings && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-fade-in-up">
-           <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-white/20">
+           <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-white/20 max-h-[90vh] overflow-y-auto no-scrollbar">
               <div className="flex justify-between items-center mb-6">
                  <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">Settings</h2>
                  <button onClick={() => setShowSettings(false)} className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors">✕</button>
@@ -524,26 +524,30 @@ const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
       setResult(null);
       setRecResult(null);
 
-      // 1. Product Research
-      const res = await performProductResearch({ 
-          name: name || (barcodeValue ? 'Scanned Item' : 'Item'), 
-          model, 
-          price, 
-          store,
-          barcode: barcodeValue 
-      }, imageData);
-      
-      setResult(res);
+      try {
+        // 1. Product Research
+        const res = await performProductResearch({ 
+            name: name || (barcodeValue ? 'Scanned Item' : 'Item'), 
+            model, 
+            price, 
+            store,
+            barcode: barcodeValue 
+        }, imageData);
+        
+        setResult(res);
 
-      // 2. Parallel Recommendation (Maximization)
-      if (res) {
-          const productIdentify = res.productName || name || 'Item';
-          const query = `Buying "${productIdentify}" at "${store || 'General Store'}" (Price: ${price || res.currentPrice || '$0'})`;
-          
-          // Use generic card if wallet is empty
-          const activeCards = cards.length > 0 ? cards : [GENERIC_CARD as CreditCard];
-          const rec = await recommendBestCard(query, activeCards);
-          setRecResult(rec);
+        // 2. Parallel Recommendation (Maximization)
+        if (res) {
+            const productIdentify = res.productName || name || 'Item';
+            const query = `Buying "${productIdentify}" at "${store || 'General Store'}" (Price: ${price || res.currentPrice || '$0'})`;
+            
+            // Use generic card if wallet is empty
+            const activeCards = cards.length > 0 ? cards : [GENERIC_CARD as CreditCard];
+            const rec = await recommendBestCard(query, activeCards);
+            setRecResult(rec);
+        }
+      } catch (e: any) {
+        alert("Research failed. Please try again.");
       }
 
       setIsLoading(false);
@@ -840,7 +844,7 @@ const HelpView: React.FC = () => {
           <div className="flex items-center gap-3 mb-3">
              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-                  <path fillRule="evenodd" d="M10.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM19.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM1.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M10.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM19.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM1.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" clipRule="evenodd" />
                </svg>
              </div>
              <h3 className="font-bold text-lg text-gray-900">Payment Research</h3>
@@ -891,7 +895,7 @@ const CardDetailModal: React.FC<{
         lastRefreshed: new Date().toISOString()
       };
       onUpdate(updatedCard);
-    } catch (e) {
+    } catch (e: any) {
       alert("Failed to refresh card details.");
     } finally {
       setIsRefreshing(false);
@@ -1130,9 +1134,14 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
 
   const handleSearch = async () => {
     if (!bankQuery.trim()) return;
+
     setIsSearching(true);
-    const results = await searchCardsByBank(bankQuery);
-    setFoundCards(results);
+    try {
+      const results = await searchCardsByBank(bankQuery);
+      setFoundCards(results);
+    } catch (e: any) {
+      console.error(e);
+    }
     setIsSearching(false);
   };
 
@@ -1148,7 +1157,7 @@ const AddCardView: React.FC<{ onAdd: (c: CreditCard) => void, onCancel: () => vo
         nickName: '' // Changed from lastFour
       });
       setStep(2);
-    } catch (e) {
+    } catch (e: any) {
       alert("Could not fetch details. Please try again or use Manual Mode.");
     } finally {
       setIsFetchingDetails(false);
@@ -1447,6 +1456,7 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
 
   const handleAsk = async () => {
     if (!item.trim() || !merchant.trim()) return;
+    
     setIsLoading(true);
     setResult(null);
     setMarketRec(null);
@@ -1462,14 +1472,19 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
 
     const query = `Buying "${item}" at "${merchant}" (${isOnline ? 'Online Transaction' : 'In-Store/Physical'})`;
     
-    const rec = await recommendBestCard(query, activeCards);
-    if (rec) {
-      setResult(rec);
-      // If we used the generic card, ensure we show options to find a real card
-      if (isEmptyWallet) setShowEmptyWalletOption(true);
-    } else {
-      setErrorMsg("AI service is currently busy or unavailable. Please check your card benefits manually.");
+    try {
+        const rec = await recommendBestCard(query, activeCards);
+        if (rec) {
+          setResult(rec);
+          // If we used the generic card, ensure we show options to find a real card
+          if (isEmptyWallet) setShowEmptyWalletOption(true);
+        } else {
+          setErrorMsg("AI service is currently busy or unavailable. Please check your card benefits manually.");
+        }
+    } catch (e: any) {
+        setErrorMsg("An error occurred. Please try again.");
     }
+    
     setIsLoading(false);
   };
 
@@ -1482,8 +1497,13 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
     const cardName = currentCard ? `${currentCard.bankName} ${currentCard.cardName}` : "Generic Credit Card";
     const query = `Buying "${item}" at "${merchant}"`;
 
-    const marketResult = await findBetterMarketCard(query, purchaseAmount, cardName);
-    setMarketRec(marketResult);
+    try {
+        const marketResult = await findBetterMarketCard(query, purchaseAmount, cardName);
+        setMarketRec(marketResult);
+    } catch (e: any) {
+       console.error(e);
+    }
+    
     setIsMarketLoading(false);
   };
   
@@ -1494,8 +1514,13 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
     const query = `Buying "${item}" at "${merchant}"`;
     const amountVal = purchaseAmount || '100'; // Default if empty
 
-    const marketResult = await findBetterMarketCard(query, amountVal, "Paying with Cash");
-    setMarketRec(marketResult);
+    try {
+        const marketResult = await findBetterMarketCard(query, amountVal, "Paying with Cash");
+        setMarketRec(marketResult);
+    } catch (e: any) {
+        console.error(e);
+    }
+    
     setIsMarketLoading(false);
   }
 

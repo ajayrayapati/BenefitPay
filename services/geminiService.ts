@@ -1,10 +1,5 @@
-
-
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { CardType, CreditCard, RecommendationResult, MarketRecommendation, ProductResearchResult } from "../types";
-
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const MODEL_FAST = 'gemini-2.5-flash';
 
@@ -21,6 +16,46 @@ const FALLBACK_COMMON_CARDS: Record<string, string[]> = {
   'WELLS FARGO': ['Active Cash', 'Autograph', 'Reflect', 'Fargo'],
   'APPLE': ['Apple Card'],
   'DEFAULT': ['Premium Rewards', 'Cash Back', 'Travel Card', 'Points Card', 'Platinum']
+};
+
+// --- API KEY OBFUSCATION ---
+// To use your own key for export, split it into these chunks.
+// This prevents simple scrapers from identifying the key.
+const KEY_CHUNKS = [
+  "", // Chunk 1 (e.g. "AIza")
+  "", // Chunk 2
+  "", // Chunk 3
+  "", // Chunk 4
+  "", // Chunk 5
+  "", // Chunk 6
+  "", // Chunk 7
+  "", // Chunk 8
+  "", // Chunk 9
+  "", // Chunk 10
+  "", // Chunk 11
+  "", // Chunk 12
+  "", // Chunk 13
+  "", // Chunk 14
+  ""  // Chunk 15
+];
+
+const getApiKey = () => {
+  // Priority 1: Environment Variable (Secure for AI Studio)
+  if (process.env.API_KEY) return process.env.API_KEY;
+  
+  // Priority 2: Reassembled Obfuscated Key
+  const assembled = KEY_CHUNKS.join("");
+  if (assembled.length > 10) return assembled;
+
+  // Fallback/Error
+  console.warn("API Key not found in environment or chunks.");
+  return ""; 
+};
+
+// Helper: Get AI Client
+const getAiClient = () => {
+  const apiKey = getApiKey();
+  return new GoogleGenAI({ apiKey });
 };
 
 // Helper: Clean JSON string from Markdown or conversational text
@@ -65,8 +100,6 @@ const tryParseJson = (jsonString: string) => {
     return JSON.parse(jsonString);
   } catch (e) {
     // Attempt to fix common JSON errors from LLMs
-    // 1. Fix missing commas between objects in arrays: } { -> }, {
-    // 2. Fix unescaped newlines (basic attempt)
     try {
       let fixed = jsonString.replace(/}\s*\{/g, '}, {');
       return JSON.parse(fixed);
@@ -81,6 +114,8 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Helper: Safe Generate Content with Retry Logic
 const safeGenerateContent = async (modelName: string, params: any, retries = 2): Promise<any> => {
+  const ai = getAiClient(); 
+  
   for (let i = 0; i < retries; i++) {
     try {
       const result = await ai.models.generateContent({
@@ -128,7 +163,7 @@ export const searchCardsByBank = async (bankName: string): Promise<string[]> => 
     const text = response.text;
     if (!text) throw new Error("Empty response");
     return tryParseJson(cleanJson(text)) as string[];
-  } catch (error) {
+  } catch (error: any) {
     console.warn("Error searching cards, using fallback:", error);
     const normalizedBank = bankName.toUpperCase();
     const key = Object.keys(FALLBACK_COMMON_CARDS).find(k => normalizedBank.includes(k)) || 'DEFAULT';
@@ -140,7 +175,6 @@ export const searchCardsByBank = async (bankName: string): Promise<string[]> => 
  * Step 2: Get detailed info (Rewards & Benefits) for a selected card
  */
 export const fetchCardDetails = async (cardName: string, bankName: string): Promise<Partial<CreditCard>> => {
-  // Simplified prompt to avoid confusing the model with conflicting format instructions vs schema
   const prompt = `Provide details for the credit card: "${bankName} ${cardName}".
   
   Populate the following fields based on the provided schema:
@@ -194,7 +228,7 @@ export const fetchCardDetails = async (cardName: string, bankName: string): Prom
     const text = response.text;
     if (!text) throw new Error("No data returned from Gemini");
     return tryParseJson(cleanJson(text));
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching card details, using template:", error);
     return {
         bankName,
@@ -208,7 +242,7 @@ export const fetchCardDetails = async (cardName: string, bankName: string): Prom
 };
 
 /**
- * Step 3: Recommend a card based on purchase context + Rakuten/Paypal Search + Value Maximization
+ * Step 3: Recommend a card
  */
 export const recommendBestCard = async (
   query: string, 
@@ -273,14 +307,14 @@ export const recommendBestCard = async (
     }
 
     return parsed;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error recommending card:", error);
     return null;
   }
 };
 
 /**
- * Step 4: Search the market for a BETTER card (for large purchases)
+ * Step 4: Search the market for a BETTER card
  */
 export const findBetterMarketCard = async (
     query: string,
@@ -324,19 +358,18 @@ export const findBetterMarketCard = async (
       if (!text) return null;
   
       return tryParseJson(cleanJson(text)) as MarketRecommendation;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error finding market card:", error);
       return null;
     }
   };
 
 /**
- * Step 5: Payment Research (Price History, Sentiment, Alternatives)
- * Supports Multimodal (Image) or Text. Now supports Barcode text override.
+ * Step 5: Payment Research
  */
 export const performProductResearch = async (
   input: { name: string; model?: string; price?: string; store?: string; barcode?: string },
-  image?: string // Base64 string for scanned barcode/product
+  image?: string 
 ): Promise<ProductResearchResult | null> => {
 
   const hasImage = !!image;
@@ -384,7 +417,6 @@ export const performProductResearch = async (
 
   const parts: any[] = [{ text: promptText }];
   if (image) {
-    // Gemini accepts base64 data without the prefix 'data:image/...;base64,'
     const base64Clean = image.split(',')[1] || image;
     parts.unshift({
       inlineData: {
@@ -406,7 +438,7 @@ export const performProductResearch = async (
     if (!text) return null;
 
     return tryParseJson(cleanJson(text)) as ProductResearchResult;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error performing research:", error);
     return null;
   }
