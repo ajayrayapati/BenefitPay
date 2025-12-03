@@ -62,7 +62,7 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
         className="flex flex-col items-center justify-center flex-1 space-y-1 active:scale-95 transition-transform"
       >
         {getIcon(AppView.RECOMMEND, currentView === AppView.RECOMMEND)}
-        <span className={`text-[10px] font-bold ${currentView === AppView.RECOMMEND ? 'text-blue-600' : 'text-gray-400'}`}>AI Recommendation</span>
+        <span className={`text-[10px] font-bold ${currentView === AppView.RECOMMEND ? 'text-blue-600' : 'text-gray-400'}`}>AI Pick</span>
       </button>
 
       <button 
@@ -70,7 +70,7 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
         className="flex flex-col items-center justify-center flex-1 space-y-1 active:scale-95 transition-transform"
       >
         {getIcon(AppView.ADD_CARD, currentView === AppView.ADD_CARD)}
-        <span className={`text-[10px] font-bold ${currentView === AppView.ADD_CARD ? 'text-blue-600' : 'text-gray-400'}`}>Add</span>
+        <span className={`text-[10px] font-bold ${currentView === AppView.ADD_CARD ? 'text-blue-600' : 'text-gray-400'}`}>Card</span>
       </button>
 
       {/* New Research Tab */}
