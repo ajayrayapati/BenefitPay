@@ -111,16 +111,33 @@ export interface SpendAnalysisResult {
   analysisSummary: string; // Brief text summary
 }
 
-// --- MARKET SPEND RECOMMENDER TYPES ---
+// --- MARKET SPEND RECOMMENDER TYPES (SpendFit) ---
 export interface CategorySpend {
   category: string;
   amount: number;
   percentage: number;
 }
 
+export interface MonthlySpendData {
+    month: string; // e.g. "Oct 2023"
+    breakdown: { category: string; amount: number }[];
+    total: number;
+}
+
+export interface AverageProfileData {
+    category: string;
+    averageAmount: number;
+    potentialIncrease: number; // $ Value increase vs baseline
+}
+
 export interface PortfolioAnalysisResult {
   totalAnalyzedSpend: number;
-  spendProfile: CategorySpend[]; // e.g. [{ category: "Dining", amount: 5000, percentage: 40 }]
+  spendProfile: CategorySpend[]; // Aggregate Totals
+  
+  // New Fields for Detailed Analysis
+  monthlyBreakdown: MonthlySpendData[];
+  averageProfile: AverageProfileData[];
+
   recommendedMarketCard: {
     bankName: string;
     cardName: string;
@@ -137,6 +154,6 @@ export enum AppView {
   RECOMMEND = 'RECOMMEND',
   RESEARCH = 'RESEARCH',
   SPEND_IQ = 'SPEND_IQ',
-  MARKET_REC = 'MARKET_REC', // New view
+  MARKET_REC = 'MARKET_REC', // SpendFit
   HELP = 'HELP'
 }

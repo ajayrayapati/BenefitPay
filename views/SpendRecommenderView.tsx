@@ -39,6 +39,15 @@ export const SpendRecommenderView: React.FC = () => {
         setIsLoading(false);
     };
 
+    // Helper to extract all unique categories for table rendering
+    const getAllCategories = () => {
+        if (!result) return [];
+        const categories = new Set<string>();
+        result.monthlyBreakdown?.forEach(m => m.breakdown.forEach(b => categories.add(b.category)));
+        result.averageProfile?.forEach(a => categories.add(a.category));
+        return Array.from(categories);
+    };
+
     return (
         <div className="px-6 py-4 max-w-lg mx-auto w-full">
             <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600 mb-6 leading-tight">
@@ -49,7 +58,7 @@ export const SpendRecommenderView: React.FC = () => {
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 animate-fade-in-up">
                     <p className="text-sm text-gray-600 mb-6 leading-relaxed">
                         Upload monthly statements from <strong>one or multiple cards</strong>. 
-                        We will analyze your aggregate spending profile across all categories and find the 
+                        We will analyze your spend month-by-month and find the 
                         <strong> #1 Best Card</strong> in the market tailored to your lifestyle.
                     </p>
 
@@ -133,42 +142,88 @@ export const SpendRecommenderView: React.FC = () => {
                             </a>
                         </div>
                     </div>
-
-                    {/* Spend Profile */}
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                        <div className="flex justify-between items-end mb-6">
-                            <h3 className="font-bold text-gray-900">Your Spend Profile</h3>
-                            <button onClick={() => { setResult(null); setFiles([]); }} className="text-xs font-bold text-blue-600">New Analysis</button>
-                        </div>
-                        
-                        <div className="space-y-4">
-                            {result.spendProfile.map((cat, idx) => (
-                                <div key={idx}>
-                                    <div className="flex justify-between text-xs font-bold text-gray-700 mb-1">
-                                        <span>{cat.category}</span>
-                                        <span>${cat.amount.toFixed(0)} ({cat.percentage}%)</span>
-                                    </div>
-                                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                                        <div 
-                                            className="h-full bg-blue-500 rounded-full"
-                                            style={{ width: `${cat.percentage}%` }}
-                                        ></div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="mt-6 pt-4 border-t border-gray-100 text-center">
-                            <div className="text-xs text-gray-400 uppercase">Total Analyzed</div>
-                            <div className="text-xl font-bold text-gray-900">${result.totalAnalyzedSpend.toLocaleString()}</div>
-                        </div>
-                    </div>
-
+                    
                     {/* Reasoning */}
                     <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100">
                         <h3 className="font-bold text-blue-900 text-sm uppercase tracking-wide mb-2">Why this card?</h3>
                         <p className="text-blue-800 text-sm leading-relaxed">
                             {result.recommendedMarketCard.reasoning}
                         </p>
+                    </div>
+
+                    <div className="flex justify-between items-end pt-4">
+                        <h3 className="font-bold text-gray-900">Analysis Details</h3>
+                        <button onClick={() => { setResult(null); setFiles([]); }} className="text-xs font-bold text-blue-600">New Analysis</button>
+                    </div>
+
+                    {/* Table 1: Monthly Breakdown */}
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="p-4 bg-gray-50 border-b border-gray-100">
+                           <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Monthly Spend Breakdown</h4>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="text-xs text-gray-500 uppercase bg-gray-50/50">
+                                    <tr>
+                                        <th className="px-4 py-3 font-bold">Category</th>
+                                        {result.monthlyBreakdown?.map((m, i) => (
+                                            <th key={i} className="px-4 py-3 font-bold whitespace-nowrap">{m.month}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {getAllCategories().map((cat, i) => (
+                                        <tr key={i} className="hover:bg-gray-50/50">
+                                            <td className="px-4 py-3 font-medium text-gray-900">{cat}</td>
+                                            {result.monthlyBreakdown?.map((m, j) => {
+                                                const amount = m.breakdown.find(b => b.category === cat)?.amount || 0;
+                                                return <td key={j} className="px-4 py-3 text-gray-600">${amount.toFixed(0)}</td>
+                                            })}
+                                        </tr>
+                                    ))}
+                                    <tr className="bg-blue-50/30 font-bold">
+                                        <td className="px-4 py-3 text-blue-900">TOTAL</td>
+                                        {result.monthlyBreakdown?.map((m, i) => (
+                                            <td key={i} className="px-4 py-3 text-blue-900">${m.total.toFixed(0)}</td>
+                                        ))}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Table 2: Average Spend & Potential Value */}
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="p-4 bg-gray-50 border-b border-gray-100">
+                           <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Average & Potential Rewards</h4>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="text-xs text-gray-500 uppercase bg-gray-50/50">
+                                    <tr>
+                                        <th className="px-4 py-3 font-bold">Category</th>
+                                        <th className="px-4 py-3 font-bold">Avg Spend / Mo</th>
+                                        <th className="px-4 py-3 font-bold text-green-700">Potential Increase / Mo</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {result.averageProfile?.map((avg, i) => (
+                                        <tr key={i} className="hover:bg-gray-50/50">
+                                            <td className="px-4 py-3 font-medium text-gray-900">{avg.category}</td>
+                                            <td className="px-4 py-3 text-gray-600">${avg.averageAmount.toFixed(0)}</td>
+                                            <td className="px-4 py-3 text-green-600 font-bold">
+                                                {avg.potentialIncrease > 0 ? `+$${avg.potentialIncrease.toFixed(2)}` : '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="p-4 bg-green-50 text-center">
+                            <p className="text-xs text-green-800">
+                                <span className="font-bold">Potential Increase:</span> Additional earnings with the recommended card compared to your current card(s).
+                            </p>
+                        </div>
                     </div>
                 </div>
             )}

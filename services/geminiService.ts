@@ -1,7 +1,4 @@
 
-
-
-
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { CardType, CreditCard, RecommendationResult, MarketRecommendation, ProductResearchResult, SpendAnalysisResult, PortfolioAnalysisResult } from "../types";
 
@@ -532,37 +529,53 @@ export const analyzeSpendStatement = async (
 }
 
 /**
- * Step 7: Market Spend Recommender - Analyze Multiple Statements
+ * Step 7: Market Spend Recommender (SpendFit) - Detailed Monthly Analysis
  */
 export const analyzePortfolioAndRecommend = async (
     files: { base64: string; mimeType: string }[]
 ): Promise<PortfolioAnalysisResult | null> => {
 
-    // Construct parts: prompt + multiple files
     const promptText = `
-    TASK: Portfolio Spend Analysis & Card Recommendation.
+    TASK: SpendFit Portfolio Analysis & Card Recommendation.
     
-    Step 1: Analyze all provided statement images/PDFs.
-    Step 2: Aggregate the total spend into categories (Dining, Groceries, Gas, Travel, Online Retail, Utilities, Other).
-    Step 3: Calculate the "Total Analyzed Spend".
-    Step 4: Based on this specific spending profile (e.g., if they spend 50% on Dining), identify the single BEST credit card currently available in the US Market that would maximize their annual rewards.
+    Step 1: Analyze all provided statement images/PDFs. Identify the Statement Month/Year (e.g. "Sep 2023") and the "Used Card Name" for each file.
+    Step 2: Aggregate the spend for EACH MONTH separately into categories (Dining, Groceries, Gas, Travel, Retail, Utilities, Other).
+    Step 3: Calculate the AVERAGE MONTHLY SPEND per category based on the data provided.
+    Step 4: Based on this specific spending profile, identify the single BEST credit card currently available in the US Market that would maximize their annual rewards.
+    Step 5: For the "Average Spend Profile", identify the rewards earned by the CURRENT cards detected in the statements. Then calculate 'Potential Increase' in dollar value as: (Recommended Card Rewards - Current Card Rewards). If current card is unknown, use 1% baseline.
     
-    Rules for Recommendation:
+    Rules:
     - Use Google Search to verify current sign-up bonuses and reward rates.
-    - Focus on long-term value (Annual Fees vs Rewards).
-    
+    - Focus on long-term value.
+    - If exact month is unknown, label it "Month 1", "Month 2".
+
     Output STRICT JSON:
     {
       "totalAnalyzedSpend": number,
-      "spendProfile": [
-         { "category": "string", "amount": number, "percentage": number }
+      "spendProfile": [ { "category": "string", "amount": number, "percentage": number } ], 
+      
+      "monthlyBreakdown": [
+        {
+           "month": "string (e.g. Sep 2023)",
+           "breakdown": [ { "category": "string", "amount": number } ],
+           "total": number
+        }
       ],
+      
+      "averageProfile": [
+        {
+           "category": "string",
+           "averageAmount": number,
+           "potentialIncrease": number (Dollar value difference: (AvgSpend * RecCardRate) - (AvgSpend * CurrentCardRate))
+        }
+      ],
+
       "recommendedMarketCard": {
          "bankName": "string",
          "cardName": "string",
-         "headline": "string (e.g. 'Best for Dining & Travel')",
-         "estimatedAnnualReturn": "string (e.g. '$850 / year')",
-         "reasoning": "string (Explain why this card wins based on the user's specific category spend)",
+         "headline": "string",
+         "estimatedAnnualReturn": "string",
+         "reasoning": "string",
          "applySearchQuery": "string"
       }
     }
