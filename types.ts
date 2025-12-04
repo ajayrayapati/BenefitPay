@@ -1,11 +1,21 @@
 
-
 export enum CardType {
   VISA = 'VISA',
   MASTERCARD = 'MASTERCARD',
   AMEX = 'AMEX',
   DISCOVER = 'DISCOVER',
   OTHER = 'OTHER'
+}
+
+export enum AppView {
+  WALLET = 'WALLET',
+  ADD_CARD = 'ADD_CARD',
+  RECOMMEND = 'RECOMMEND',
+  RESEARCH = 'RESEARCH',
+  SPEND_IQ = 'SPEND_IQ',
+  MARKET_REC = 'MARKET_REC',
+  BANK_IQ = 'BANK_IQ',
+  HELP = 'HELP'
 }
 
 export interface RewardCategory {
@@ -102,6 +112,20 @@ export interface SpendCategoryAnalysis {
   missedSavings: number; // The difference
 }
 
+export interface Subscription {
+  name: string;
+  amount: number;
+  frequency: string; // Monthly, Annual
+  category: string; // Streaming, Utilities, Insurance
+}
+
+export interface SuspiciousTransaction {
+  description: string;
+  amount: number;
+  date: string;
+  reason: string;
+}
+
 export interface SpendAnalysisResult {
   detectedCard: string;
   totalSpend: number;
@@ -109,6 +133,8 @@ export interface SpendAnalysisResult {
   categoryAnalysis: SpendCategoryAnalysis[];
   topMissedCategory: string;
   analysisSummary: string; // Brief text summary
+  recurringPayments: Subscription[];
+  suspiciousTransactions: SuspiciousTransaction[];
 }
 
 // --- MARKET SPEND RECOMMENDER TYPES (SpendFit) ---
@@ -155,13 +181,6 @@ export interface CashFlow {
   netFlow: number;
 }
 
-export interface Subscription {
-  name: string;
-  amount: number;
-  frequency: string; // Monthly, Annual
-  category: string; // Streaming, Utilities, Insurance
-}
-
 export interface SavingsOpportunity {
   title: string;
   description: string;
@@ -171,20 +190,10 @@ export interface SavingsOpportunity {
 
 export interface BankAnalysisResult {
   cashFlow: CashFlow;
-  categoryBreakdown: { category: string; amount: number; percentage: number }[];
+  categoryBreakdown: CategorySpend[];
   subscriptions: Subscription[];
   savingsOpportunities: SavingsOpportunity[];
-  overallHealthScore: number; // 0-100
+  suspiciousTransactions: SuspiciousTransaction[];
+  overallHealthScore: number;
   summary: string;
-}
-
-export enum AppView {
-  WALLET = 'WALLET',
-  ADD_CARD = 'ADD_CARD',
-  RECOMMEND = 'RECOMMEND',
-  RESEARCH = 'RESEARCH',
-  SPEND_IQ = 'SPEND_IQ',
-  MARKET_REC = 'MARKET_REC', // SpendFit
-  BANK_IQ = 'BANK_IQ',
-  HELP = 'HELP'
 }

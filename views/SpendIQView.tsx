@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { CreditCard, SpendAnalysisResult, AppView } from '../types';
 import { analyzeSpendStatement } from '../services/geminiService';
@@ -97,7 +98,31 @@ export const SpendIQView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppV
                 </div>
             ) : (
                 <div className="space-y-6 animate-fade-in-up pb-10">
-                    {/* Summary Dashboard */}
+                    
+                    {/* 1. Suspicious Activity Alert */}
+                    {result.suspiciousTransactions && result.suspiciousTransactions.length > 0 && (
+                        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 shadow-sm animate-pulse-slow">
+                             <div className="flex items-center gap-2 mb-3">
+                                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                <h3 className="font-bold text-red-800 text-sm uppercase tracking-wide">Suspicious Activity Detected</h3>
+                             </div>
+                             <div className="space-y-2">
+                                {result.suspiciousTransactions.map((tx, idx) => (
+                                    <div key={idx} className="bg-white p-3 rounded-xl border border-red-100 flex justify-between items-start">
+                                        <div>
+                                            <div className="font-bold text-gray-900 text-sm">{tx.description}</div>
+                                            <div className="text-xs text-red-500">{tx.reason}</div>
+                                        </div>
+                                        <div className="font-bold text-red-600 text-sm">
+                                            -${tx.amount.toFixed(2)}
+                                        </div>
+                                    </div>
+                                ))}
+                             </div>
+                        </div>
+                    )}
+                    
+                    {/* 2. Summary Dashboard */}
                     <div className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
                         
@@ -127,6 +152,7 @@ export const SpendIQView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppV
                         </div>
                     </div>
                     
+                    {/* 3. Categories Analysis */}
                     <div className="flex justify-between items-center">
                         <h3 className="font-bold text-gray-900 text-lg">Categories Analysis</h3>
                         <button onClick={() => { setResult(null); setFiles([]); }} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg">New Analysis</button>
@@ -169,6 +195,26 @@ export const SpendIQView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppV
                             </div>
                         ))}
                     </div>
+
+                    {/* 4. Recurring Payments Section */}
+                    {result.recurringPayments && result.recurringPayments.length > 0 && (
+                        <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm mt-6">
+                            <div className="p-4 bg-gray-50 border-b border-gray-100">
+                                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Recurring Subscriptions Found</h3>
+                            </div>
+                            <div className="divide-y divide-gray-100">
+                                {result.recurringPayments.map((sub, idx) => (
+                                    <div key={idx} className="p-4 flex justify-between items-center">
+                                        <div>
+                                            <div className="font-bold text-gray-900 text-sm">{sub.name}</div>
+                                            <div className="text-[10px] text-gray-400 uppercase">{sub.frequency || 'Monthly'} • {sub.category}</div>
+                                        </div>
+                                        <div className="font-bold text-gray-900 text-sm">${sub.amount.toFixed(2)}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* CROSS-LINK NAVIGATION: SpendIQ -> SpendFit */}
                     <div className="mt-6 bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => onViewChange(AppView.MARKET_REC)}>

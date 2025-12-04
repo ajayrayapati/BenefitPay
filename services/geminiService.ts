@@ -453,6 +453,7 @@ export const performProductResearch = async (
 /**
  * Step 6: SpendIQ - Analyze Statement (OPTIMIZED)
  * Now processes multiple files and aggregates by category for speed.
+ * UPDATED: Now detects recurring and suspicious activity.
  */
 export const analyzeSpendStatement = async (
     files: string[], // Base64 PDF content
@@ -468,7 +469,7 @@ export const analyzeSpendStatement = async (
     }));
 
     const promptText = `
-    Analyze the provided credit card statement(s).
+    Analyze the provided CREDIT CARD statement(s).
     
     TASK (Optimization Mode):
     1. Identify the "Used Card" (Bank/Name) from the document headers.
@@ -479,6 +480,8 @@ export const analyzeSpendStatement = async (
        - Calculate "Best Wallet Card": Pick the card from the "User Wallet Data" below that offers the highest return for this category.
        - Calculate "Potential Rewards": $ value if the Best Card was used.
        - Calculate "Missed Savings": (Potential - Actual). Return 0 if Actual >= Potential.
+    5. DETECT Recurring Subscriptions (Netflix, Spotify, etc.)
+    6. DETECT Suspicious Activity (Duplicate charges, unknown fees, high amount relative to category norms).
 
     User Wallet Data:
     ${JSON.stringify(cardsSummary, null, 2)}
@@ -500,7 +503,9 @@ export const analyzeSpendStatement = async (
             "bestCardRewardVal": number,
             "missedSavings": number
          }
-      ]
+      ],
+      "recurringPayments": [ { "name": "string", "amount": number, "frequency": "string (Monthly)", "category": "string" } ],
+      "suspiciousTransactions": [ { "description": "string", "amount": number, "date": "string", "reason": "string (e.g. Duplicate or High Fee)" } ]
     }
     `;
 
@@ -543,7 +548,7 @@ export const analyzePortfolioAndRecommend = async (
     Step 2: Aggregate the spend for EACH MONTH separately into categories (Dining, Groceries, Gas, Travel, Retail, Utilities, Other).
     Step 3: Calculate the AVERAGE MONTHLY SPEND per category based on the data provided.
     Step 4: Based on this specific spending profile, identify the single BEST credit card currently available in the US Market that would maximize their annual rewards.
-    Step 5: For the "Average Spend Profile", identify the rewards earned by the CURRENT cards detected in the statements. Then calculate 'Potential Increase' in dollar value as: (Recommended Card Rewards - Current Card Rewards). If current card is unknown, use 1% baseline.
+    Step 5: For the "Average Spend Profile", identify the rewards earned by the detected cards in statements. Then calculate 'Potential Increase' in dollar value as: (Recommended Card Rewards - Detected Actual Rewards). If detected card unknown, assume 1% baseline.
     
     Rules:
     - Use Google Search to verify current sign-up bonuses and reward rates.
@@ -567,7 +572,7 @@ export const analyzePortfolioAndRecommend = async (
         {
            "category": "string",
            "averageAmount": number,
-           "potentialIncrease": number (Dollar value difference: (AvgSpend * RecCardRate) - (AvgSpend * CurrentCardRate))
+           "potentialIncrease": number (Dollar value difference)
         }
       ],
 
@@ -630,6 +635,7 @@ export const analyzeBankStatements = async (
      - Highlight potentially overpriced utilities or insurance (based on general US averages).
      - Identify subscription optimizations (e.g. "Shared family plans could save $X").
      - Identify cheaper phone/internet options if spend is high (> $80/mo).
+  5. SUSPICIOUS ACTIVITY: Check for suspicious duplicate charges or unusually high fees.
 
   Output STRICT JSON:
   {
@@ -644,6 +650,7 @@ export const analyzeBankStatements = async (
          "type": "SUBSCRIPTION" | "UTILITY" | "FEE" | "INSURANCE" | "DUPLICATE"
        }
     ],
+    "suspiciousTransactions": [ { "description": "string", "amount": number, "date": "string", "reason": "string" } ],
     "overallHealthScore": number (0-100 score based on savings/waste),
     "summary": "string"
   }
