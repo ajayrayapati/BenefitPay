@@ -1,5 +1,6 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { CardType, CreditCard, RecommendationResult, MarketRecommendation, ProductResearchResult } from "../types";
+import { CardType, CreditCard, RecommendationResult, MarketRecommendation, ProductResearchResult, SpendAnalysisResult } from "../types";
 
 const MODEL_FAST = 'gemini-2.5-flash';
 
@@ -19,8 +20,6 @@ const FALLBACK_COMMON_CARDS: Record<string, string[]> = {
 };
 
 // --- API KEY OBFUSCATION ---
-// To use your own key for export, split it into these chunks.
-// This prevents simple scrapers from identifying the key.
 const KEY_CHUNKS = [
   "", // Chunk 1 (e.g. "AIza")
   "", // Chunk 2
@@ -386,10 +385,11 @@ export const performProductResearch = async (
   STRICT INSTRUCTIONS:
   1. Use Google Search to find the EXACT REAL-TIME PRICE of this specific model (or Barcode ${input.barcode || 'N/A'}) at major retailers (Amazon, Best Buy, Walmart, Target). 
      DO NOT HALLUCINATE PRICES. If you can't find it, verify the MSRP.
-  2. Compare the user's observed price ($${input.price || 'N/A'}) vs the market best price.
-  3. Verdict: Is it a 'Good Buy' (Cheaper than market), 'Overpriced' (More expensive than Amazon/BestBuy), or 'Wait' (Price trending down)?
-  4. Generate 6-month price history based on general market trends for this category/product.
-  5. Find 3 SPECIFIC alternatives that offer better value.
+  2. Generate valid URL to purchase the alternative products.
+  3. Compare the user's observed price ($${input.price || 'N/A'}) vs the market best price.
+  4. Verdict: Is it a 'Good Buy' (Cheaper than market), 'Overpriced' (More expensive than Amazon/BestBuy), or 'Wait' (Price trending down)?
+  5. Generate 6-month price history based on general market trends for this category/product.
+  6. Find 3 SPECIFIC alternatives that offer better value.
 
   IMPORTANT:
   - Your response MUST BE A VALID JSON OBJECT only.
@@ -448,3 +448,87 @@ export const performProductResearch = async (
     return null;
   }
 };
+
+/**
+ * Step 6: SpendIQ - Analyze Statement
+ */
+export const analyzeSpendStatement = async (
+    fileBase64: string,
+    mimeType: string,
+    allCards: CreditCard[]
+): Promise<SpendAnalysisResult | null> => {
+    
+    // Convert allCards to summary string
+    const cardsSummary = allCards.map(c => ({
+        id: c.id,
+        name: `${c.bankName} ${c.cardName}`,
+        nickName: c.nickName || '',
+        rewards: c.rewards
+    }));
+
+    const promptText = `
+    Analyze this credit card statement document.
+    
+    PRE-ANALYSIS:
+    1. Identify the Bank Name and Card Name (e.g. "Chase Sapphire") from the document header or logo. This is the "Used Card".
+    2. Match the identified card against the 'User Wallet Rewards Data' to see if it exists in the user's wallet. If it does, use those reward rates. If not, use general knowledge for that card.
+
+    TASK:
+    1. Extract each transaction (Date, Merchant, Amount).
+    2. Categorize the transaction (Dining, Travel, Grocery, Gas, Online, etc.).
+    3. CALCULATE "Actual Rewards": The $ value earned using the identified "Used Card" for that transaction.
+    4. CALCULATE "Potential Rewards": The $ value that could have been earned using the BEST card from the "User Wallet Rewards Data" provided below.
+    5. CALCULATE "Missed Savings": (Potential Rewards) - (Actual Rewards).
+       - If Actual >= Potential, Missed Savings is 0.
+       - ONLY show a delta (positive number) if the user ACTUALLY missed out on money.
+
+    User Wallet Rewards Data (Potential Cards):
+    ${JSON.stringify(cardsSummary, null, 2)}
+
+    Output STRICT JSON:
+    {
+      "detectedCard": "string (The bank/card name you identified from the file)",
+      "totalSpend": number (sum of all amounts),
+      "totalMissedSavings": number (sum of missed savings),
+      "topMissedCategory": "string (e.g. Dining)",
+      "transactions": [
+         {
+            "date": "string",
+            "merchant": "string",
+            "amount": number,
+            "category": "string",
+            "usedCardRewardVal": number (dollar amount earned on statement card),
+            "bestCardId": "string (id from wallet data)",
+            "bestCardName": "string",
+            "bestCardRewardVal": number,
+            "missedSavings": number (Difference: Best - Used. 0 if Used was best),
+            "reasoning": "string (e.g. Amex Gold earns 4x ($4.00) vs Statement Card 1x ($1.00))"
+         }
+      ]
+    }
+    `;
+
+    const base64Clean = fileBase64.split(',')[1] || fileBase64;
+    
+    // Support PDF or Image mime types
+    const validMime = mimeType === 'application/pdf' ? 'application/pdf' : 'image/jpeg';
+
+    const parts: any[] = [
+        { inlineData: { mimeType: validMime, data: base64Clean } },
+        { text: promptText }
+    ];
+
+    try {
+        const response = await safeGenerateContent(MODEL_FAST, {
+            contents: { parts }
+        });
+
+        const text = response.text;
+        if (!text) return null;
+
+        return tryParseJson(cleanJson(text)) as SpendAnalysisResult;
+    } catch (error: any) {
+        console.error("Error analyzing spend:", error);
+        return null;
+    }
+}

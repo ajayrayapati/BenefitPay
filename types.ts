@@ -91,10 +91,32 @@ export interface ProductResearchResult {
   alternatives: ProductAlternative[];
 }
 
+// --- SPEND IQ TYPES ---
+export interface SpendTransaction {
+  date: string;
+  merchant: string;
+  amount: number;
+  category: string;
+  usedCardRewardVal: number; // $ value earned
+  bestCardId: string;
+  bestCardName: string;
+  bestCardRewardVal: number; // $ value could have earned
+  missedSavings: number; // The difference
+  reasoning: string; // e.g. "Amex Gold earns 4x on Dining vs 1x"
+}
+
+export interface SpendAnalysisResult {
+  totalSpend: number;
+  totalMissedSavings: number;
+  transactions: SpendTransaction[];
+  topMissedCategory: string;
+}
+
 export enum AppView {
   WALLET = 'WALLET',
   ADD_CARD = 'ADD_CARD',
   RECOMMEND = 'RECOMMEND',
   RESEARCH = 'RESEARCH',
+  SPEND_IQ = 'SPEND_IQ',
   HELP = 'HELP'
 }

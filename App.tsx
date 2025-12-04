@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { AppView, CreditCard, CardType, CardDocument, RecommendationResult, MarketRecommendation, ProductResearchResult } from './types';
-import { searchCardsByBank, fetchCardDetails, recommendBestCard, findBetterMarketCard, performProductResearch } from './services/geminiService';
+import { AppView, CreditCard, CardType, CardDocument, RecommendationResult, MarketRecommendation, ProductResearchResult, SpendAnalysisResult } from './types';
+import { searchCardsByBank, fetchCardDetails, recommendBestCard, findBetterMarketCard, performProductResearch, analyzeSpendStatement } from './services/geminiService';
 import { CardRepository } from './services/cardRepository';
 import { CreditCardView } from './components/CreditCardView';
 import { TabBar } from './components/TabBar';
@@ -238,6 +239,7 @@ export default function App() {
         {view === AppView.ADD_CARD && <AddCardView onAdd={addCard} onCancel={() => setView(AppView.WALLET)} />}
         {view === AppView.RECOMMEND && <RecommendView cards={cards} onViewChange={setView} />}
         {view === AppView.RESEARCH && <ResearchView cards={cards} />}
+        {view === AppView.SPEND_IQ && <SpendIQView cards={cards} />}
         {view === AppView.HELP && <HelpView />}
       </main>
 
@@ -363,6 +365,145 @@ const WalletView: React.FC<{
       )}
     </div>
   );
+};
+
+// --- SPEND IQ VIEW ---
+const SpendIQView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
+    const [file, setFile] = useState<File | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [result, setResult] = useState<SpendAnalysisResult | null>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0]);
+        }
+    };
+
+    const handleAnalyze = async () => {
+        if (!file) return;
+        
+        setIsLoading(true);
+        try {
+            const base64 = await readFileAsBase64(file);
+            // Determine mime type (pdf or image)
+            const mimeType = file.type === 'application/pdf' ? 'application/pdf' : 'image/jpeg';
+            const analysis = await analyzeSpendStatement(base64, mimeType, cards);
+            setResult(analysis);
+        } catch (e) {
+            console.error(e);
+            alert("Analysis failed. Please ensure the file is clear.");
+        }
+        setIsLoading(false);
+    };
+
+    return (
+        <div className="px-6 py-4 max-w-lg mx-auto w-full">
+            <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600 mb-6">SpendIQ Analysis</h1>
+            
+            {!result ? (
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 animate-fade-in-up">
+                    <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                        Upload a monthly credit card statement (PDF, Photo, or Screenshot). 
+                        We'll analyze every transaction to see if you could have earned more rewards by using a different card from your wallet.
+                    </p>
+
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Upload Statement (PDF / Image)</label>
+                            <div className="relative border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:bg-gray-50 hover:border-blue-400 transition-all group">
+                                <input 
+                                    type="file" 
+                                    accept="image/*,.pdf"
+                                    onChange={handleFileChange}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                                <div className="flex flex-col items-center group-hover:scale-105 transition-transform">
+                                    <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mb-3">
+                                        <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    </div>
+                                    <span className="text-sm font-bold text-gray-700">{file ? file.name : "Tap to Upload"}</span>
+                                    <span className="text-[10px] text-gray-400 mt-1">Supports PDF, JPG, PNG</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <Button onClick={handleAnalyze} disabled={!file || isLoading} isLoading={isLoading}>
+                            Analyze My Spending
+                        </Button>
+                    </div>
+                </div>
+            ) : (
+                <div className="space-y-6 animate-fade-in-up pb-10">
+                    {/* Summary Dashboard */}
+                    <div className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                        
+                        <div className="relative z-10 text-center">
+                            {/* Auto Detected Tag */}
+                            {(result as any).detectedCard && (
+                                <div className="inline-block bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide mb-2">
+                                    Detected: {(result as any).detectedCard}
+                                </div>
+                            )}
+
+                            <h2 className="text-sm font-bold opacity-80 uppercase tracking-widest mb-1">Missed Rewards Value</h2>
+                            <div className="text-4xl font-black mb-2">${result.totalMissedSavings.toFixed(2)}</div>
+                            <p className="text-xs opacity-70">
+                                You could have earned this much more by using the right card.
+                            </p>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-white/10">
+                             <div>
+                                 <div className="text-[10px] font-bold opacity-60 uppercase">Total Spend</div>
+                                 <div className="text-lg font-bold">${result.totalSpend.toFixed(2)}</div>
+                             </div>
+                             <div>
+                                 <div className="text-[10px] font-bold opacity-60 uppercase">Top Missed Category</div>
+                                 <div className="text-lg font-bold">{result.topMissedCategory}</div>
+                             </div>
+                        </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                        <h3 className="font-bold text-gray-900 text-lg">Transaction Breakdown</h3>
+                        <button onClick={() => { setResult(null); setFile(null); }} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg">New Analysis</button>
+                    </div>
+
+                    <div className="space-y-3">
+                        {result.transactions.map((tx, idx) => (
+                            <div key={idx} className={`bg-white p-4 rounded-2xl border ${tx.missedSavings > 0 ? 'border-orange-100 shadow-sm' : 'border-gray-100 opacity-70'}`}>
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div className="font-bold text-gray-900">{tx.merchant}</div>
+                                        <div className="text-xs text-gray-500">{tx.date} • {tx.category}</div>
+                                    </div>
+                                    <div className="font-mono font-bold text-gray-900">${tx.amount.toFixed(2)}</div>
+                                </div>
+                                
+                                {tx.missedSavings > 0 ? (
+                                    <div className="bg-orange-50 rounded-xl p-3 mt-2">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-xs font-bold text-orange-800 uppercase">Optimization Missed</span>
+                                            <span className="text-xs font-black text-red-600 bg-white px-1.5 py-0.5 rounded border border-red-100">-${tx.missedSavings.toFixed(2)}</span>
+                                        </div>
+                                        <p className="text-[10px] text-orange-900/80 leading-relaxed font-medium">
+                                            {tx.reasoning}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-1.5 mt-2">
+                                        <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                        <span className="text-xs font-bold text-green-600">Great job! Best card used.</span>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 };
 
 // --- Research View for Product Analysis ---
@@ -853,13 +994,30 @@ const HelpView: React.FC = () => {
           <div className="flex items-center gap-3 mb-3">
              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-                  <path fillRule="evenodd" d="M10.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM19.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM1.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M10.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM19.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM1.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" clipRule="evenodd" />
                </svg>
              </div>
              <h3 className="font-bold text-lg text-gray-900">Payment Research</h3>
           </div>
           <p className="text-sm text-gray-600 leading-relaxed">
             Is it worth the price? Enter a product name or scan a barcode/item. The AI will analyze the last 6 months of price history, summarized customer sentiment, and suggest better value alternatives.
+          </p>
+        </div>
+
+        {/* SpendIQ Help Section */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3 mb-3">
+             <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                    <path fillRule="evenodd" d="M2.25 13.5a8.25 8.25 0 018.25-8.25.75.75 0 01.75.75v6.75H18a.75.75 0 01.75.75 8.25 8.25 0 01-16.5 0zm1.5 0a6.75 6.75 0 006.75 6.75v-6H3.75z" clipRule="evenodd" />
+                    <path d="M12 2.25a.75.75 0 01.75.75v2.25H18a2.25 2.25 0 012.25 2.25v5.506A8.25 8.25 0 0014.887 2.26 6.72 6.72 0 0012 2.25z" />
+                </svg>
+             </div>
+             <h3 className="font-bold text-lg text-gray-900">SpendIQ</h3>
+          </div>
+          <p className="text-sm text-gray-600 leading-relaxed">
+             Upload a monthly credit card statement (PDF, Photo, or Screenshot). 
+             We'll analyze every transaction to see if you could have earned more rewards by using a different card from your wallet.
           </p>
         </div>
 
@@ -1479,7 +1637,7 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
     // But we still perform the search with the generic card to give results.
     const isEmptyWallet = cards.length === 0;
 
-    const query = `Buying "${item}" at "${merchant}" (${isOnline ? 'Online Transaction' : 'In-Store/Physical'})`;
+    const query = `Buying "${item}" at "${merchant}" (${isOnline ? 'Online Transaction' : 'In-Store/Physical'}) for amount $${purchaseAmount || '100'}`;
     
     try {
         const rec = await recommendBestCard(query, activeCards);
@@ -1568,7 +1726,7 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
         <div className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 mb-8 space-y-5 animate-fade-in-up">
           
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Product or Service you are looking to purchase</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Product or Service you would like to purchase</label>
             <input
               type="text"
               className="w-full bg-gray-50 border-0 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium"
@@ -1675,13 +1833,12 @@ const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) 
                 >
                     <div className="flex flex-col text-left">
                         <div className="flex items-center gap-1">
-                           <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Potential Max Return</span>
-                           <span className="bg-emerald-100 text-emerald-600 text-[9px] px-1.5 py-0.5 rounded-full font-bold">STRETCH GOAL</span>
-                        </div>
-                        <div className="flex items-baseline gap-1 mt-0.5">
                            <span className="text-lg font-black text-emerald-800">{result.optimizationAnalysis.totalPotentialReturn}</span>
-                           {estimatedTotalEarnings && <span className="text-sm font-bold text-emerald-700">(${estimatedTotalEarnings})</span>}
+                           <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mt-1">Potential Max Return</span>
                         </div>
+                        {estimatedTotalEarnings && (
+                            <span className="text-sm font-bold text-emerald-700 mt-1">Total Est. Cash: ${estimatedTotalEarnings}</span>
+                        )}
                     </div>
                     <div className="flex items-center gap-1 text-emerald-600 text-xs font-bold bg-white/60 px-3 py-1.5 rounded-lg group-hover:bg-white transition-colors">
                         <span>See How</span>

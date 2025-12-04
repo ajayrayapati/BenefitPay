@@ -38,6 +38,13 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
             <path fillRule="evenodd" d="M10.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM19.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM1.5 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm0 6a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" clipRule="evenodd" />
           </svg>
         );
+      case AppView.SPEND_IQ:
+        return (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${color}`}>
+                <path fillRule="evenodd" d="M2.25 13.5a8.25 8.25 0 018.25-8.25.75.75 0 01.75.75v6.75H18a.75.75 0 01.75.75 8.25 8.25 0 01-16.5 0zm1.5 0a6.75 6.75 0 006.75 6.75v-6H3.75z" clipRule="evenodd" />
+                <path d="M12 2.25a.75.75 0 01.75.75v2.25H18a2.25 2.25 0 012.25 2.25v5.506A8.25 8.25 0 0014.887 2.26 6.72 6.72 0 0012 2.25z" />
+            </svg>
+        );
       case AppView.HELP:
         return (
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${color}`}>
@@ -47,47 +54,39 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
     }
   };
 
+  const btnClass = "flex flex-col items-center justify-center flex-1 space-y-1 active:scale-95 transition-transform min-w-[50px]";
+  const textClass = (isActive: boolean) => `text-[9px] font-bold ${isActive ? 'text-blue-600' : 'text-gray-400'}`;
+
   return (
-    <div className="fixed top-0 w-full bg-white/90 backdrop-blur-md border-b border-gray-200 pt-safe px-2 flex justify-between items-center z-50 h-[88px] pb-2 shadow-sm">
-      <button 
-        onClick={() => onChange(AppView.WALLET)}
-        className="flex flex-col items-center justify-center flex-1 space-y-1 active:scale-95 transition-transform"
-      >
+    <div className="fixed top-0 w-full bg-white/95 backdrop-blur-md border-b border-gray-200 pt-safe px-1 flex justify-between items-center z-50 h-[88px] pb-2 shadow-sm">
+      <button onClick={() => onChange(AppView.WALLET)} className={btnClass}>
         {getIcon(AppView.WALLET, currentView === AppView.WALLET)}
-        <span className={`text-[10px] font-bold ${currentView === AppView.WALLET ? 'text-blue-600' : 'text-gray-400'}`}>Home</span>
+        <span className={textClass(currentView === AppView.WALLET)}>Home</span>
       </button>
 
-      <button 
-        onClick={() => onChange(AppView.RECOMMEND)}
-        className="flex flex-col items-center justify-center flex-1 space-y-1 active:scale-95 transition-transform"
-      >
+      <button onClick={() => onChange(AppView.RECOMMEND)} className={btnClass}>
         {getIcon(AppView.RECOMMEND, currentView === AppView.RECOMMEND)}
-        <span className={`text-[10px] font-bold ${currentView === AppView.RECOMMEND ? 'text-blue-600' : 'text-gray-400'}`}>AI Pick</span>
+        <span className={textClass(currentView === AppView.RECOMMEND)}>AI Pick</span>
       </button>
 
-      <button 
-        onClick={() => onChange(AppView.ADD_CARD)}
-        className="flex flex-col items-center justify-center flex-1 space-y-1 active:scale-95 transition-transform"
-      >
+      <button onClick={() => onChange(AppView.ADD_CARD)} className={btnClass}>
         {getIcon(AppView.ADD_CARD, currentView === AppView.ADD_CARD)}
-        <span className={`text-[10px] font-bold ${currentView === AppView.ADD_CARD ? 'text-blue-600' : 'text-gray-400'}`}>Card</span>
+        <span className={textClass(currentView === AppView.ADD_CARD)}>Add</span>
       </button>
 
-      {/* New Research Tab */}
-      <button 
-        onClick={() => onChange(AppView.RESEARCH)}
-        className="flex flex-col items-center justify-center flex-1 space-y-1 active:scale-95 transition-transform"
-      >
+      <button onClick={() => onChange(AppView.RESEARCH)} className={btnClass}>
         {getIcon(AppView.RESEARCH, currentView === AppView.RESEARCH)}
-        <span className={`text-[10px] font-bold ${currentView === AppView.RESEARCH ? 'text-blue-600' : 'text-gray-400'} whitespace-nowrap`}>Product Research</span>
+        <span className={textClass(currentView === AppView.RESEARCH)}>Research</span>
       </button>
 
-      <button 
-        onClick={() => onChange(AppView.HELP)}
-        className="flex flex-col items-center justify-center flex-1 space-y-1 active:scale-95 transition-transform"
-      >
+      <button onClick={() => onChange(AppView.SPEND_IQ)} className={btnClass}>
+        {getIcon(AppView.SPEND_IQ, currentView === AppView.SPEND_IQ)}
+        <span className={textClass(currentView === AppView.SPEND_IQ)}>SpendIQ</span>
+      </button>
+
+      <button onClick={() => onChange(AppView.HELP)} className={btnClass}>
         {getIcon(AppView.HELP, currentView === AppView.HELP)}
-        <span className={`text-[10px] font-bold ${currentView === AppView.HELP ? 'text-blue-600' : 'text-gray-400'}`}>Help</span>
+        <span className={textClass(currentView === AppView.HELP)}>Help</span>
       </button>
     </div>
   );
