@@ -91,25 +91,44 @@ export interface ProductResearchResult {
   alternatives: ProductAlternative[];
 }
 
-// --- SPEND IQ TYPES ---
-export interface SpendTransaction {
-  date: string;
-  merchant: string;
-  amount: number;
+// --- SPEND IQ TYPES (OPTIMIZED) ---
+export interface SpendCategoryAnalysis {
   category: string;
+  totalAmount: number;
+  percentage: number;
   usedCardRewardVal: number; // $ value earned
-  bestCardId: string;
   bestCardName: string;
   bestCardRewardVal: number; // $ value could have earned
   missedSavings: number; // The difference
-  reasoning: string; // e.g. "Amex Gold earns 4x on Dining vs 1x"
 }
 
 export interface SpendAnalysisResult {
+  detectedCard: string;
   totalSpend: number;
   totalMissedSavings: number;
-  transactions: SpendTransaction[];
+  categoryAnalysis: SpendCategoryAnalysis[];
   topMissedCategory: string;
+  analysisSummary: string; // Brief text summary
+}
+
+// --- MARKET SPEND RECOMMENDER TYPES ---
+export interface CategorySpend {
+  category: string;
+  amount: number;
+  percentage: number;
+}
+
+export interface PortfolioAnalysisResult {
+  totalAnalyzedSpend: number;
+  spendProfile: CategorySpend[]; // e.g. [{ category: "Dining", amount: 5000, percentage: 40 }]
+  recommendedMarketCard: {
+    bankName: string;
+    cardName: string;
+    headline: string;
+    estimatedAnnualReturn: string; // e.g. "$850 / year"
+    reasoning: string; // Why this fits the profile
+    applySearchQuery: string;
+  };
 }
 
 export enum AppView {
@@ -118,5 +137,6 @@ export enum AppView {
   RECOMMEND = 'RECOMMEND',
   RESEARCH = 'RESEARCH',
   SPEND_IQ = 'SPEND_IQ',
+  MARKET_REC = 'MARKET_REC', // New view
   HELP = 'HELP'
 }

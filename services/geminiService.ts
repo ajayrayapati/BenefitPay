@@ -1,6 +1,9 @@
 
+
+
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { CardType, CreditCard, RecommendationResult, MarketRecommendation, ProductResearchResult, SpendAnalysisResult } from "../types";
+import { CardType, CreditCard, RecommendationResult, MarketRecommendation, ProductResearchResult, SpendAnalysisResult, PortfolioAnalysisResult } from "../types";
 
 const MODEL_FAST = 'gemini-2.5-flash';
 
@@ -450,11 +453,11 @@ export const performProductResearch = async (
 };
 
 /**
- * Step 6: SpendIQ - Analyze Statement
+ * Step 6: SpendIQ - Analyze Statement (OPTIMIZED)
+ * Now processes multiple files and aggregates by category for speed.
  */
 export const analyzeSpendStatement = async (
-    fileBase64: string,
-    mimeType: string,
+    files: string[], // Base64 PDF content
     allCards: CreditCard[]
 ): Promise<SpendAnalysisResult | null> => {
     
@@ -467,56 +470,51 @@ export const analyzeSpendStatement = async (
     }));
 
     const promptText = `
-    Analyze this credit card statement document.
+    Analyze the provided credit card statement(s).
     
-    PRE-ANALYSIS:
-    1. Identify the Bank Name and Card Name (e.g. "Chase Sapphire") from the document header or logo. This is the "Used Card".
-    2. Match the identified card against the 'User Wallet Rewards Data' to see if it exists in the user's wallet. If it does, use those reward rates. If not, use general knowledge for that card.
+    TASK (Optimization Mode):
+    1. Identify the "Used Card" (Bank/Name) from the document headers.
+    2. AGGREGATE all spending into standard categories (Dining, Groceries, Travel, Gas, Online Retail, Utilities, Other).
+    3. Calculate "Total Spend" for each category.
+    4. For each category:
+       - Calculate "Actual Rewards": $ value earned using the detected "Used Card".
+       - Calculate "Best Wallet Card": Pick the card from the "User Wallet Data" below that offers the highest return for this category.
+       - Calculate "Potential Rewards": $ value if the Best Card was used.
+       - Calculate "Missed Savings": (Potential - Actual). Return 0 if Actual >= Potential.
 
-    TASK:
-    1. Extract each transaction (Date, Merchant, Amount).
-    2. Categorize the transaction (Dining, Travel, Grocery, Gas, Online, etc.).
-    3. CALCULATE "Actual Rewards": The $ value earned using the identified "Used Card" for that transaction.
-    4. CALCULATE "Potential Rewards": The $ value that could have been earned using the BEST card from the "User Wallet Rewards Data" provided below.
-    5. CALCULATE "Missed Savings": (Potential Rewards) - (Actual Rewards).
-       - If Actual >= Potential, Missed Savings is 0.
-       - ONLY show a delta (positive number) if the user ACTUALLY missed out on money.
-
-    User Wallet Rewards Data (Potential Cards):
+    User Wallet Data:
     ${JSON.stringify(cardsSummary, null, 2)}
 
     Output STRICT JSON:
     {
-      "detectedCard": "string (The bank/card name you identified from the file)",
-      "totalSpend": number (sum of all amounts),
-      "totalMissedSavings": number (sum of missed savings),
-      "topMissedCategory": "string (e.g. Dining)",
-      "transactions": [
+      "detectedCard": "string (e.g. Chase Sapphire)",
+      "totalSpend": number,
+      "totalMissedSavings": number (Sum of all missed savings),
+      "topMissedCategory": "string",
+      "analysisSummary": "string (Brief insight, e.g. 'You missed $40 mainly on Dining by using Chase instead of Amex Gold')",
+      "categoryAnalysis": [
          {
-            "date": "string",
-            "merchant": "string",
-            "amount": number,
             "category": "string",
-            "usedCardRewardVal": number (dollar amount earned on statement card),
-            "bestCardId": "string (id from wallet data)",
+            "totalAmount": number,
+            "percentage": number (of total spend),
+            "usedCardRewardVal": number,
             "bestCardName": "string",
             "bestCardRewardVal": number,
-            "missedSavings": number (Difference: Best - Used. 0 if Used was best),
-            "reasoning": "string (e.g. Amex Gold earns 4x ($4.00) vs Statement Card 1x ($1.00))"
+            "missedSavings": number
          }
       ]
     }
     `;
 
-    const base64Clean = fileBase64.split(',')[1] || fileBase64;
+    const parts: any[] = [{ text: promptText }];
     
-    // Support PDF or Image mime types
-    const validMime = mimeType === 'application/pdf' ? 'application/pdf' : 'image/jpeg';
-
-    const parts: any[] = [
-        { inlineData: { mimeType: validMime, data: base64Clean } },
-        { text: promptText }
-    ];
+    // Add all files
+    files.forEach(base64 => {
+        const base64Clean = base64.split(',')[1] || base64;
+        parts.push({
+            inlineData: { mimeType: 'application/pdf', data: base64Clean }
+        });
+    });
 
     try {
         const response = await safeGenerateContent(MODEL_FAST, {
@@ -532,3 +530,69 @@ export const analyzeSpendStatement = async (
         return null;
     }
 }
+
+/**
+ * Step 7: Market Spend Recommender - Analyze Multiple Statements
+ */
+export const analyzePortfolioAndRecommend = async (
+    files: { base64: string; mimeType: string }[]
+): Promise<PortfolioAnalysisResult | null> => {
+
+    // Construct parts: prompt + multiple files
+    const promptText = `
+    TASK: Portfolio Spend Analysis & Card Recommendation.
+    
+    Step 1: Analyze all provided statement images/PDFs.
+    Step 2: Aggregate the total spend into categories (Dining, Groceries, Gas, Travel, Online Retail, Utilities, Other).
+    Step 3: Calculate the "Total Analyzed Spend".
+    Step 4: Based on this specific spending profile (e.g., if they spend 50% on Dining), identify the single BEST credit card currently available in the US Market that would maximize their annual rewards.
+    
+    Rules for Recommendation:
+    - Use Google Search to verify current sign-up bonuses and reward rates.
+    - Focus on long-term value (Annual Fees vs Rewards).
+    
+    Output STRICT JSON:
+    {
+      "totalAnalyzedSpend": number,
+      "spendProfile": [
+         { "category": "string", "amount": number, "percentage": number }
+      ],
+      "recommendedMarketCard": {
+         "bankName": "string",
+         "cardName": "string",
+         "headline": "string (e.g. 'Best for Dining & Travel')",
+         "estimatedAnnualReturn": "string (e.g. '$850 / year')",
+         "reasoning": "string (Explain why this card wins based on the user's specific category spend)",
+         "applySearchQuery": "string"
+      }
+    }
+    `;
+
+    const parts: any[] = [{ text: promptText }];
+    
+    // Append all file parts
+    files.forEach(f => {
+        const base64Clean = f.base64.split(',')[1] || f.base64;
+        const validMime = f.mimeType === 'application/pdf' ? 'application/pdf' : 'image/jpeg';
+        parts.push({
+            inlineData: { mimeType: validMime, data: base64Clean }
+        });
+    });
+
+    try {
+        const response = await safeGenerateContent(MODEL_FAST, {
+            contents: { parts },
+            config: {
+                tools: [{ googleSearch: {} }] // Enable search for current market info
+            }
+        });
+
+        const text = response.text;
+        if (!text) return null;
+
+        return tryParseJson(cleanJson(text)) as PortfolioAnalysisResult;
+    } catch (error: any) {
+        console.error("Error analyzing portfolio:", error);
+        return null;
+    }
+};

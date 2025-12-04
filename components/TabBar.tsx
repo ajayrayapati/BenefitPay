@@ -45,6 +45,13 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
                 <path d="M12 2.25a.75.75 0 01.75.75v2.25H18a2.25 2.25 0 012.25 2.25v5.506A8.25 8.25 0 0014.887 2.26 6.72 6.72 0 0012 2.25z" />
             </svg>
         );
+      case AppView.MARKET_REC:
+        return (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${color}`}>
+                <path fillRule="evenodd" d="M9 14l6-6m0 0v6m0-6h-6" clipRule="evenodd" />
+                <path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12 18.75a6.75 6.75 0 100-13.5 6.75 6.75 0 000 13.5z" />
+            </svg>
+        );
       case AppView.HELP:
         return (
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${color}`}>
@@ -54,11 +61,11 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
     }
   };
 
-  const btnClass = "flex flex-col items-center justify-center flex-1 space-y-1 active:scale-95 transition-transform min-w-[50px]";
-  const textClass = (isActive: boolean) => `text-[9px] font-bold ${isActive ? 'text-blue-600' : 'text-gray-400'}`;
+  const btnClass = "flex flex-col items-center justify-center flex-1 space-y-1 active:scale-95 transition-transform min-w-[45px]";
+  const textClass = (isActive: boolean) => `text-[8px] sm:text-[9px] font-bold ${isActive ? 'text-blue-600' : 'text-gray-400'}`;
 
   return (
-    <div className="fixed top-0 w-full bg-white/95 backdrop-blur-md border-b border-gray-200 pt-safe px-1 flex justify-between items-center z-50 h-[88px] pb-2 shadow-sm">
+    <div className="fixed top-0 w-full bg-white/95 backdrop-blur-md border-b border-gray-200 pt-safe px-1 flex justify-between items-center z-50 h-[88px] pb-2 shadow-sm overflow-x-auto no-scrollbar">
       <button onClick={() => onChange(AppView.WALLET)} className={btnClass}>
         {getIcon(AppView.WALLET, currentView === AppView.WALLET)}
         <span className={textClass(currentView === AppView.WALLET)}>Home</span>
@@ -76,12 +83,17 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
 
       <button onClick={() => onChange(AppView.RESEARCH)} className={btnClass}>
         {getIcon(AppView.RESEARCH, currentView === AppView.RESEARCH)}
-        <span className={textClass(currentView === AppView.RESEARCH)}>Research</span>
+        <span className={textClass(currentView === AppView.RESEARCH)}>Product</span>
       </button>
 
       <button onClick={() => onChange(AppView.SPEND_IQ)} className={btnClass}>
         {getIcon(AppView.SPEND_IQ, currentView === AppView.SPEND_IQ)}
         <span className={textClass(currentView === AppView.SPEND_IQ)}>SpendIQ</span>
+      </button>
+
+      <button onClick={() => onChange(AppView.MARKET_REC)} className={btnClass}>
+        {getIcon(AppView.MARKET_REC, currentView === AppView.MARKET_REC)}
+        <span className={textClass(currentView === AppView.MARKET_REC)}>SpendFit</span>
       </button>
 
       <button onClick={() => onChange(AppView.HELP)} className={btnClass}>
