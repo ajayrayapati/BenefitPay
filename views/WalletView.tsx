@@ -33,8 +33,11 @@ export const WalletView: React.FC<WalletViewProps> = ({ cards, onChangeView, onC
       </div>
 
       <div className="mb-6 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
-        <p className="text-sm text-blue-900 leading-relaxed">
+        <p className="text-sm text-blue-900 leading-relaxed mb-2">
           Simple smart pay app which provides recommendations on what credit card to use based on your wallet, plus finds real-time cashback stacking offers (Rakuten, PayPal, Capital One Shopping) to maximize your savings.
+        </p>
+        <p className="text-xs text-blue-700 font-medium">
+            This app does much more! <button onClick={() => onChangeView(AppView.HELP)} className="underline font-bold hover:text-blue-900">Explore features in About</button>
         </p>
       </div>
 
