@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
-import { PortfolioAnalysisResult } from '../types';
+import { PortfolioAnalysisResult, AppView } from '../types';
 import { analyzePortfolioAndRecommend } from '../services/geminiService';
 import { Button } from '../components/Button';
 import { readFileAsBase64 } from '../utils/helpers';
 
-export const SpendRecommenderView: React.FC = () => {
+export const SpendRecommenderView: React.FC<{ onViewChange: (v: AppView) => void }> = ({ onViewChange }) => {
     const [files, setFiles] = useState<File[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<PortfolioAnalysisResult | null>(null);
@@ -223,6 +223,17 @@ export const SpendRecommenderView: React.FC = () => {
                             <p className="text-xs text-green-800">
                                 <span className="font-bold">Potential Increase:</span> Additional earnings with the recommended card compared to your current card(s).
                             </p>
+                        </div>
+                    </div>
+
+                    {/* CROSS-LINK NAVIGATION: SpendFit -> SpendIQ */}
+                    <div className="mt-6 bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => onViewChange(AppView.SPEND_IQ)}>
+                        <div>
+                            <h4 className="font-bold text-gray-800 text-sm">Check your last statement</h4>
+                            <p className="text-xs text-gray-500 mt-1">See how much you missed on specific purchases.</p>
+                        </div>
+                        <div className="bg-white rounded-full p-2 text-gray-400">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </div>
                     </div>
                 </div>

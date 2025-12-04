@@ -318,6 +318,17 @@ export const RecommendView: React.FC<{ cards: CreditCard[], onViewChange: (v: Ap
               </div>
            )}
            
+           {/* CROSS-LINK NAVIGATION: AI Pick -> Product Research */}
+           <div className="mt-6 bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => onViewChange(AppView.RESEARCH)}>
+              <div>
+                  <h4 className="font-bold text-gray-800 text-sm">Wait! Is this product worth it?</h4>
+                  <p className="text-xs text-gray-500 mt-1">Check price history & value before you buy.</p>
+              </div>
+              <div className="bg-white rounded-full p-2 text-gray-400">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </div>
+           </div>
+           
            {/* Empty Wallet Prompt (If Generic Card used) */}
            {showEmptyWalletOption && (
               <div className="mt-6 text-center">

@@ -1,13 +1,11 @@
 
-
-
 import React, { useState } from 'react';
-import { CreditCard, SpendAnalysisResult } from '../types';
+import { CreditCard, SpendAnalysisResult, AppView } from '../types';
 import { analyzeSpendStatement } from '../services/geminiService';
 import { Button } from '../components/Button';
 import { readFileAsBase64 } from '../utils/helpers';
 
-export const SpendIQView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
+export const SpendIQView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) => void }> = ({ cards, onViewChange }) => {
     const [files, setFiles] = useState<File[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<SpendAnalysisResult | null>(null);
@@ -170,6 +168,17 @@ export const SpendIQView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
                                 )}
                             </div>
                         ))}
+                    </div>
+
+                    {/* CROSS-LINK NAVIGATION: SpendIQ -> SpendFit */}
+                    <div className="mt-6 bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => onViewChange(AppView.MARKET_REC)}>
+                        <div>
+                            <h4 className="font-bold text-gray-800 text-sm">Want to maximize more?</h4>
+                            <p className="text-xs text-gray-500 mt-1">Find a better card in the market for your spend.</p>
+                        </div>
+                        <div className="bg-white rounded-full p-2 text-gray-400">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </div>
                     </div>
                 </div>
             )}

@@ -1,12 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { CreditCard, ProductResearchResult, RecommendationResult } from '../types';
+import { AppView, CreditCard, ProductResearchResult, RecommendationResult } from '../types';
 import { performProductResearch, recommendBestCard } from '../services/geminiService';
 import { Button } from '../components/Button';
 import { MaximizationDashboard } from '../components/MaximizationDashboard';
 import { GENERIC_CARD } from '../utils/helpers';
 
-export const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
+export const ResearchView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppView) => void }> = ({ cards, onViewChange }) => {
   const [name, setName] = useState('');
   const [model, setModel] = useState('');
   const [price, setPrice] = useState('');
@@ -364,6 +364,17 @@ export const ResearchView: React.FC<{ cards: CreditCard[] }> = ({ cards }) => {
                 </div>
               </div>
             )}
+            
+            {/* CROSS-LINK NAVIGATION: Product -> AI Pick */}
+            <div className="mt-6 bg-gray-50 border border-gray-100 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => onViewChange(AppView.RECOMMEND)}>
+              <div>
+                  <h4 className="font-bold text-gray-800 text-sm">Decided to buy?</h4>
+                  <p className="text-xs text-gray-500 mt-1">Find the best card in your wallet.</p>
+              </div>
+              <div className="bg-white rounded-full p-2 text-gray-400">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </div>
          </div>
        )}
 

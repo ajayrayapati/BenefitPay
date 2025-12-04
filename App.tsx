@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { AppView, CreditCard } from './types';
 import { CardRepository } from './services/cardRepository';
@@ -128,9 +127,9 @@ export default function App() {
         )}
         {view === AppView.ADD_CARD && <AddCardView onAdd={addCard} onCancel={() => setView(AppView.WALLET)} />}
         {view === AppView.RECOMMEND && <RecommendView cards={cards} onViewChange={setView} />}
-        {view === AppView.RESEARCH && <ResearchView cards={cards} />}
-        {view === AppView.SPEND_IQ && <SpendIQView cards={cards} />}
-        {view === AppView.MARKET_REC && <SpendRecommenderView />}
+        {view === AppView.RESEARCH && <ResearchView cards={cards} onViewChange={setView} />}
+        {view === AppView.SPEND_IQ && <SpendIQView cards={cards} onViewChange={setView} />}
+        {view === AppView.MARKET_REC && <SpendRecommenderView onViewChange={setView} />}
         {view === AppView.BANK_IQ && <BankIQView />}
         {view === AppView.HELP && <HelpView />}
       </main>
