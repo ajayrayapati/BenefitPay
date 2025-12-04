@@ -471,7 +471,7 @@ export const analyzeSpendStatement = async (
     const promptText = `
     Analyze the provided CREDIT CARD statement(s).
     
-    TASK (Optimization Mode):
+    TASK (Optimization Mode - FAST):
     1. Identify the "Used Card" (Bank/Name) from the document headers.
     2. AGGREGATE all spending into standard categories (Dining, Groceries, Travel, Gas, Online Retail, Utilities, Other).
     3. Calculate "Total Spend" for each category.
@@ -480,19 +480,19 @@ export const analyzeSpendStatement = async (
        - Calculate "Best Wallet Card": Pick the card from the "User Wallet Data" below that offers the highest return for this category.
        - Calculate "Potential Rewards": $ value if the Best Card was used.
        - Calculate "Missed Savings": (Potential - Actual). Return 0 if Actual >= Potential.
-    5. DETECT Recurring Subscriptions (Netflix, Spotify, etc.)
-    6. DETECT Suspicious Activity (Duplicate charges, unknown fees, high amount relative to category norms).
+    5. DETECT Recurring Subscriptions (Top 5 highest value only).
+    6. DETECT Suspicious Activity (Top 3 most concerning).
 
     User Wallet Data:
     ${JSON.stringify(cardsSummary, null, 2)}
 
-    Output STRICT JSON:
+    Output STRICT JSON (Keep summaries concise under 30 words):
     {
       "detectedCard": "string (e.g. Chase Sapphire)",
       "totalSpend": number,
       "totalMissedSavings": number (Sum of all missed savings),
       "topMissedCategory": "string",
-      "analysisSummary": "string (Brief insight, e.g. 'You missed $40 mainly on Dining by using Chase instead of Amex Gold')",
+      "analysisSummary": "string (Brief insight, max 30 words)",
       "categoryAnalysis": [
          {
             "category": "string",
@@ -542,18 +542,18 @@ export const analyzePortfolioAndRecommend = async (
 ): Promise<PortfolioAnalysisResult | null> => {
 
     const promptText = `
-    TASK: SpendFit Portfolio Analysis & Card Recommendation.
+    TASK: SpendFit Portfolio Analysis & Card Recommendation. (FAST Mode)
     
-    Step 1: Analyze all provided statement images/PDFs. Identify the Statement Month/Year (e.g. "Sep 2023") and the "Used Card Name" for each file.
-    Step 2: Aggregate the spend for EACH MONTH separately into categories (Dining, Groceries, Gas, Travel, Retail, Utilities, Other).
-    Step 3: Calculate the AVERAGE MONTHLY SPEND per category based on the data provided.
-    Step 4: Based on this specific spending profile, identify the single BEST credit card currently available in the US Market that would maximize their annual rewards.
-    Step 5: For the "Average Spend Profile", identify the rewards earned by the detected cards in statements. Then calculate 'Potential Increase' in dollar value as: (Recommended Card Rewards - Detected Actual Rewards). If detected card unknown, assume 1% baseline.
+    Step 1: Analyze statements. Identify the Statement Month/Year and "Used Card Name".
+    Step 2: Aggregate spend for EACH MONTH into categories (Dining, Groceries, Gas, Travel, Retail, Utilities, Other).
+    Step 3: Calculate AVERAGE MONTHLY SPEND per category.
+    Step 4: Based on this profile, identify the single BEST credit card currently available in the US Market that maximizes annual rewards.
+    Step 5: Calculate 'Potential Increase' in dollar value (Recommended Card Rewards - Detected Actual Rewards).
     
     Rules:
     - Use Google Search to verify current sign-up bonuses and reward rates.
-    - Focus on long-term value.
-    - If exact month is unknown, label it "Month 1", "Month 2".
+    - Keep reasoning brief (Max 30 words).
+    - If exact month is unknown, label it "Month 1".
 
     Output STRICT JSON:
     {
@@ -581,7 +581,7 @@ export const analyzePortfolioAndRecommend = async (
          "cardName": "string",
          "headline": "string",
          "estimatedAnnualReturn": "string",
-         "reasoning": "string",
+         "reasoning": "string (Max 30 words)",
          "applySearchQuery": "string"
       }
     }
@@ -625,27 +625,26 @@ export const analyzeBankStatements = async (
   const promptText = `
   Analyze the provided BANK statements (PDFs).
   
-  TASK:
-  1. Cash Flow: Calculate Total Deposits (In) and Total Withdrawals/Expenses (Out).
-  2. Category Breakdown: Group expenses by category (Rent/Mortgage, Utilities, Food, Transport, Shopping, Subscriptions, Fees, etc.).
-  3. Subscription Detection: Identify recurring payments (Netflix, Spotify, Gym, Insurance, Phone).
-  4. SAVINGS OPPORTUNITY DETECTION:
-     - Check for high ATM fees or overdraft fees.
-     - Identify duplicate payments to the same merchant.
-     - Highlight potentially overpriced utilities or insurance (based on general US averages).
-     - Identify subscription optimizations (e.g. "Shared family plans could save $X").
-     - Identify cheaper phone/internet options if spend is high (> $80/mo).
-  5. SUSPICIOUS ACTIVITY: Check for suspicious duplicate charges or unusually high fees.
+  TASK (FAST Mode):
+  1. Cash Flow: Calculate Total Deposits (In) and Withdrawals (Out).
+  2. Category Breakdown: Group expenses by category (Rent, Utilities, Food, Transport, etc.).
+  3. Subscription Detection: Identify recurring payments (Top 10 only).
+  4. SAVINGS OPPORTUNITY DETECTION (Top 3 highest impact):
+     - Check for high ATM fees.
+     - Identify duplicate payments.
+     - Highlight overpriced utilities/insurance.
+     - Identify subscription optimizations.
+  5. SUSPICIOUS ACTIVITY: Check for suspicious duplicate charges or high fees.
 
-  Output STRICT JSON:
+  Output STRICT JSON (Keep summary concise):
   {
     "cashFlow": { "totalIn": number, "totalOut": number, "netFlow": number },
     "categoryBreakdown": [ { "category": "string", "amount": number, "percentage": number } ],
     "subscriptions": [ { "name": "string", "amount": number, "frequency": "string", "category": "string" } ],
     "savingsOpportunities": [
        {
-         "title": "string (e.g. 'Switch Internet Provider')",
-         "description": "string (e.g. 'You pay $120 for Comcast. Local fiber offers are ~$70.')",
+         "title": "string (Brief)",
+         "description": "string (Brief)",
          "potentialMonthlySavings": number,
          "type": "SUBSCRIPTION" | "UTILITY" | "FEE" | "INSURANCE" | "DUPLICATE"
        }
