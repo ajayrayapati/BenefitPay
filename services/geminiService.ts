@@ -1,6 +1,7 @@
 
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { CardType, CreditCard, RecommendationResult, MarketRecommendation, ProductResearchResult, SpendAnalysisResult, PortfolioAnalysisResult } from "../types";
+import { CardType, CreditCard, RecommendationResult, MarketRecommendation, ProductResearchResult, SpendAnalysisResult, PortfolioAnalysisResult, BankAnalysisResult } from "../types";
 
 const MODEL_FAST = 'gemini-2.5-flash';
 
@@ -608,4 +609,65 @@ export const analyzePortfolioAndRecommend = async (
         console.error("Error analyzing portfolio:", error);
         return null;
     }
+};
+
+/**
+ * Step 8: BankIQ - Bank Statement Analysis
+ */
+export const analyzeBankStatements = async (
+  files: string[] // Base64 PDF content
+): Promise<BankAnalysisResult | null> => {
+  const promptText = `
+  Analyze the provided BANK statements (PDFs).
+  
+  TASK:
+  1. Cash Flow: Calculate Total Deposits (In) and Total Withdrawals/Expenses (Out).
+  2. Category Breakdown: Group expenses by category (Rent/Mortgage, Utilities, Food, Transport, Shopping, Subscriptions, Fees, etc.).
+  3. Subscription Detection: Identify recurring payments (Netflix, Spotify, Gym, Insurance, Phone).
+  4. SAVINGS OPPORTUNITY DETECTION:
+     - Check for high ATM fees or overdraft fees.
+     - Identify duplicate payments to the same merchant.
+     - Highlight potentially overpriced utilities or insurance (based on general US averages).
+     - Identify subscription optimizations (e.g. "Shared family plans could save $X").
+     - Identify cheaper phone/internet options if spend is high (> $80/mo).
+
+  Output STRICT JSON:
+  {
+    "cashFlow": { "totalIn": number, "totalOut": number, "netFlow": number },
+    "categoryBreakdown": [ { "category": "string", "amount": number, "percentage": number } ],
+    "subscriptions": [ { "name": "string", "amount": number, "frequency": "string", "category": "string" } ],
+    "savingsOpportunities": [
+       {
+         "title": "string (e.g. 'Switch Internet Provider')",
+         "description": "string (e.g. 'You pay $120 for Comcast. Local fiber offers are ~$70.')",
+         "potentialMonthlySavings": number,
+         "type": "SUBSCRIPTION" | "UTILITY" | "FEE" | "INSURANCE" | "DUPLICATE"
+       }
+    ],
+    "overallHealthScore": number (0-100 score based on savings/waste),
+    "summary": "string"
+  }
+  `;
+
+  const parts: any[] = [{ text: promptText }];
+  files.forEach(base64 => {
+      const base64Clean = base64.split(',')[1] || base64;
+      parts.push({
+          inlineData: { mimeType: 'application/pdf', data: base64Clean }
+      });
+  });
+
+  try {
+      const response = await safeGenerateContent(MODEL_FAST, {
+          contents: { parts }
+      });
+
+      const text = response.text;
+      if (!text) return null;
+
+      return tryParseJson(cleanJson(text)) as BankAnalysisResult;
+  } catch (error: any) {
+      console.error("Error analyzing bank statements:", error);
+      return null;
+  }
 };

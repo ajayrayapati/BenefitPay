@@ -11,6 +11,7 @@ import { RecommendView } from './views/RecommendView';
 import { ResearchView } from './views/ResearchView';
 import { SpendIQView } from './views/SpendIQView';
 import { SpendRecommenderView } from './views/SpendRecommenderView';
+import { BankIQView } from './views/BankIQView';
 import { HelpView } from './views/HelpView';
 
 export default function App() {
@@ -130,6 +131,7 @@ export default function App() {
         {view === AppView.RESEARCH && <ResearchView cards={cards} />}
         {view === AppView.SPEND_IQ && <SpendIQView cards={cards} />}
         {view === AppView.MARKET_REC && <SpendRecommenderView />}
+        {view === AppView.BANK_IQ && <BankIQView />}
         {view === AppView.HELP && <HelpView />}
       </main>
 

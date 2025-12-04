@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { AppView } from '../types';
 
@@ -52,6 +53,14 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
                 <path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12 18.75a6.75 6.75 0 100-13.5 6.75 6.75 0 000 13.5z" />
             </svg>
         );
+      case AppView.BANK_IQ:
+        return (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${color}`}>
+                <path fillRule="evenodd" d="M12 2.25a.75.75 0 01.75.75v.756a32.3 32.3 0 01-5.6 1.052.75.75 0 01-.256-1.478A30.73 30.73 0 0012 2.25zM12.75 3a.75.75 0 00-1.5 0v.756c1.93.295 3.795.66 5.6 1.052a.75.75 0 00.256-1.478A30.73 30.73 0 0012.75 3z" clipRule="evenodd" />
+                <path d="M10.5 9.75a3 3 0 013-3h1.5a.75.75 0 01.75.75v10.5a.75.75 0 01-.75.75H4.5a.75.75 0 01-.75-.75V8.25a.75.75 0 01.75-.75h2.25a3 3 0 013 3v4.5a.75.75 0 001.5 0v-4.5z" />
+                <path d="M20.25 14.25a.75.75 0 00-1.5 0v4.5a.75.75 0 001.5 0v-4.5z" />
+            </svg>
+        );
       case AppView.HELP:
         return (
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${color}`}>
@@ -90,10 +99,15 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
         {getIcon(AppView.SPEND_IQ, currentView === AppView.SPEND_IQ)}
         <span className={textClass(currentView === AppView.SPEND_IQ)}>SpendIQ</span>
       </button>
-
+      
       <button onClick={() => onChange(AppView.MARKET_REC)} className={btnClass}>
         {getIcon(AppView.MARKET_REC, currentView === AppView.MARKET_REC)}
         <span className={textClass(currentView === AppView.MARKET_REC)}>SpendFit</span>
+      </button>
+
+      <button onClick={() => onChange(AppView.BANK_IQ)} className={btnClass}>
+        {getIcon(AppView.BANK_IQ, currentView === AppView.BANK_IQ)}
+        <span className={textClass(currentView === AppView.BANK_IQ)}>BankIQ</span>
       </button>
 
       <button onClick={() => onChange(AppView.HELP)} className={btnClass}>

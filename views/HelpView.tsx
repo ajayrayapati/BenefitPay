@@ -101,6 +101,23 @@ export const HelpView: React.FC = () => {
             </p>
         </div>
 
+        {/* BankIQ Help Section */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                        <path fillRule="evenodd" d="M12 2.25a.75.75 0 01.75.75v.756a32.3 32.3 0 01-5.6 1.052.75.75 0 01-.256-1.478A30.73 30.73 0 0012 2.25zM12.75 3a.75.75 0 00-1.5 0v.756c1.93.295 3.795.66 5.6 1.052a.75.75 0 00.256-1.478A30.73 30.73 0 0012.75 3z" clipRule="evenodd" />
+                        <path d="M10.5 9.75a3 3 0 013-3h1.5a.75.75 0 01.75.75v10.5a.75.75 0 01-.75.75H4.5a.75.75 0 01-.75-.75V8.25a.75.75 0 01.75-.75h2.25a3 3 0 013 3v4.5a.75.75 0 001.5 0v-4.5z" />
+                        <path d="M20.25 14.25a.75.75 0 00-1.5 0v4.5a.75.75 0 001.5 0v-4.5z" />
+                    </svg>
+                </div>
+                <h3 className="font-bold text-lg text-gray-900">BankIQ</h3>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed">
+                Upload your bank statements (checking/savings). We'll visualize your cash flow, identify recurring subscriptions you might want to cancel, and detect savings opportunities like switching utilities or reducing fees.
+            </p>
+        </div>
+
       </div>
     </div>
   );

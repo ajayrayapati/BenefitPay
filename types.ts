@@ -148,6 +148,36 @@ export interface PortfolioAnalysisResult {
   };
 }
 
+// --- BANK IQ TYPES ---
+export interface CashFlow {
+  totalIn: number;
+  totalOut: number;
+  netFlow: number;
+}
+
+export interface Subscription {
+  name: string;
+  amount: number;
+  frequency: string; // Monthly, Annual
+  category: string; // Streaming, Utilities, Insurance
+}
+
+export interface SavingsOpportunity {
+  title: string;
+  description: string;
+  potentialMonthlySavings: number;
+  type: 'SUBSCRIPTION' | 'UTILITY' | 'FEE' | 'INSURANCE' | 'DUPLICATE';
+}
+
+export interface BankAnalysisResult {
+  cashFlow: CashFlow;
+  categoryBreakdown: { category: string; amount: number; percentage: number }[];
+  subscriptions: Subscription[];
+  savingsOpportunities: SavingsOpportunity[];
+  overallHealthScore: number; // 0-100
+  summary: string;
+}
+
 export enum AppView {
   WALLET = 'WALLET',
   ADD_CARD = 'ADD_CARD',
@@ -155,5 +185,6 @@ export enum AppView {
   RESEARCH = 'RESEARCH',
   SPEND_IQ = 'SPEND_IQ',
   MARKET_REC = 'MARKET_REC', // SpendFit
+  BANK_IQ = 'BANK_IQ',
   HELP = 'HELP'
 }
