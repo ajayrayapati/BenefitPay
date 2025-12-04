@@ -83,7 +83,7 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
     { view: AppView.WALLET, label: 'Home' },
     { view: AppView.RECOMMEND, label: 'AI Pick' },
     { view: AppView.ADD_CARD, label: 'Card' },
-    { view: AppView.CART_SAVER, label: 'Cart' },
+    { view: AppView.CART_SAVER, label: 'Cart Analyzer' },
     { view: AppView.RESEARCH, label: 'Product Research' },
   ];
 

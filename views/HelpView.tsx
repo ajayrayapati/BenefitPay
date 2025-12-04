@@ -4,13 +4,16 @@ import React from 'react';
 
 export const HelpView: React.FC = () => {
   return (
-    <div className="px-6 py-4 max-w-lg mx-auto w-full">
+    <div className="px-6 py-4 max-w-lg mx-auto w-full pb-20">
       <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600 mb-6">
         About AI-Smart Pay
       </h1>
 
       <div className="space-y-6 animate-fade-in-up">
         
+        {/* --- ROW 1 ITEMS --- */}
+
+        {/* 1. Wallet Home */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-3">
              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
@@ -26,20 +29,7 @@ export const HelpView: React.FC = () => {
           </p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex items-center gap-3 mb-3">
-             <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-                 <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 9a.75.75 0 00-1.5 0v2.25H9a.75.75 0 000 1.5h2.25V15a.75.75 0 001.5 0v-2.25H15a.75.75 0 000-1.5h-2.25V9z" clipRule="evenodd" />
-               </svg>
-             </div>
-             <h3 className="font-bold text-lg text-gray-900">Add Card</h3>
-          </div>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            Search for your bank (e.g., "Chase") to auto-fill card details using AI. If the AI is busy, or for custom cards, you can enter details manually and upload warranty PDFs.
-          </p>
-        </div>
-
+        {/* 2. AI Pick */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-3">
              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
@@ -54,6 +44,37 @@ export const HelpView: React.FC = () => {
           </p>
         </div>
 
+        {/* 3. Add Card */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3 mb-3">
+             <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                 <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 9a.75.75 0 00-1.5 0v2.25H9a.75.75 0 000 1.5h2.25V15a.75.75 0 001.5 0v-2.25H15a.75.75 0 000-1.5h-2.25V9z" clipRule="evenodd" />
+               </svg>
+             </div>
+             <h3 className="font-bold text-lg text-gray-900">Add Card</h3>
+          </div>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            Search for your bank (e.g., "Chase") to auto-fill card details using AI. If the AI is busy, or for custom cards, you can enter details manually and upload warranty PDFs.
+          </p>
+        </div>
+
+        {/* 4. Cart Analyzer */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                        <path d="M2.25 2.25a.75.75 0 000 1.5h1.386c.17 0 .318.114.362.278l2.558 9.592a3.752 3.752 0 00-2.806 3.63c0 .414.336.75.75.75h15.75a.75.75 0 000-1.5H5.378A2.25 2.25 0 017.5 15h11.218a.75.75 0 00.674-.421 60.358 60.358 0 002.96-7.228.75.75 0 00-.525-.965A60.864 60.864 0 005.68 4.509l-.232-.867A1.875 1.875 0 003.636 2.25H2.25zM3.75 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM16.5 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" />
+                    </svg>
+                </div>
+                <h3 className="font-bold text-lg text-gray-900">Cart Analyzer</h3>
+            </div>
+            <p className="text-sm text-gray-600 leading-relaxed">
+                Take a photo of your shopping cart. The AI will identify the visible items, compare their prices at your current store versus online competitors (like Amazon or Walmart), and calculate your total potential savings.
+            </p>
+        </div>
+
+        {/* 5. Product Research */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-3">
              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
@@ -68,22 +89,10 @@ export const HelpView: React.FC = () => {
           </p>
         </div>
 
-        {/* Cart Saver Help Section */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-                        <path d="M2.25 2.25a.75.75 0 000 1.5h1.386c.17 0 .318.114.362.278l2.558 9.592a3.752 3.752 0 00-2.806 3.63c0 .414.336.75.75.75h15.75a.75.75 0 000-1.5H5.378A2.25 2.25 0 017.5 15h11.218a.75.75 0 00.674-.421 60.358 60.358 0 002.96-7.228.75.75 0 00-.525-.965A60.864 60.864 0 005.68 4.509l-.232-.867A1.875 1.875 0 003.636 2.25H2.25zM3.75 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM16.5 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" />
-                    </svg>
-                </div>
-                <h3 className="font-bold text-lg text-gray-900">Cart Saver</h3>
-            </div>
-            <p className="text-sm text-gray-600 leading-relaxed">
-                Take a photo of your shopping cart. The AI will identify the visible items, compare their prices at your current store versus online competitors (like Amazon or Walmart), and calculate your total potential savings.
-            </p>
-        </div>
 
-        {/* SpendIQ Help Section */}
+        {/* --- ROW 2 ITEMS --- */}
+
+        {/* 6. SpendIQ */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-3">
              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
@@ -100,7 +109,7 @@ export const HelpView: React.FC = () => {
           </p>
         </div>
 
-        {/* SpendFit Help Section */}
+        {/* 7. SpendFit */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
@@ -116,7 +125,7 @@ export const HelpView: React.FC = () => {
             </p>
         </div>
 
-        {/* BankIQ Help Section */}
+        {/* 8. BankIQ */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
             <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
