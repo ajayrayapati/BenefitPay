@@ -15,6 +15,7 @@ export enum AppView {
   SPEND_IQ = 'SPEND_IQ',
   MARKET_REC = 'MARKET_REC',
   BANK_IQ = 'BANK_IQ',
+  CART_SAVER = 'CART_SAVER',
   HELP = 'HELP'
 }
 
@@ -195,5 +196,24 @@ export interface BankAnalysisResult {
   savingsOpportunities: SavingsOpportunity[];
   suspiciousTransactions: SuspiciousTransaction[];
   overallHealthScore: number;
+  summary: string;
+}
+
+// --- CART SAVER TYPES ---
+export interface CartItemAnalysis {
+  name: string;
+  currentStorePrice: number; // Estimated price at current store
+  bestAlternativeStore: string; // e.g. "Walmart" or "Amazon"
+  bestAlternativePrice: number;
+  potentialSavings: number;
+  link?: string; // Search link
+}
+
+export interface CartAnalysisResult {
+  storeAnalyzed: string;
+  identifiedItemCount: number;
+  totalEstimatedSavings: number;
+  items: CartItemAnalysis[];
+  unidentifiedItemsWarning: boolean; // True if some items looked blurry or unidentifiable
   summary: string;
 }

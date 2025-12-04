@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { AppView } from '../types';
 
@@ -61,6 +60,12 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
                 <path d="M20.25 14.25a.75.75 0 00-1.5 0v4.5a.75.75 0 001.5 0v-4.5z" />
             </svg>
         );
+      case AppView.CART_SAVER:
+        return (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${color}`}>
+                <path d="M2.25 2.25a.75.75 0 000 1.5h1.386c.17 0 .318.114.362.278l2.558 9.592a3.752 3.752 0 00-2.806 3.63c0 .414.336.75.75.75h15.75a.75.75 0 000-1.5H5.378A2.25 2.25 0 017.5 15h11.218a.75.75 0 00.674-.421 60.358 60.358 0 002.96-7.228.75.75 0 00-.525-.965A60.864 60.864 0 005.68 4.509l-.232-.867A1.875 1.875 0 003.636 2.25H2.25zM3.75 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM16.5 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" />
+            </svg>
+        );
       case AppView.HELP:
         return (
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${color}`}>
@@ -93,6 +98,11 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
       <button onClick={() => onChange(AppView.RESEARCH)} className={btnClass}>
         {getIcon(AppView.RESEARCH, currentView === AppView.RESEARCH)}
         <span className={textClass(currentView === AppView.RESEARCH)}>Product</span>
+      </button>
+
+      <button onClick={() => onChange(AppView.CART_SAVER)} className={btnClass}>
+        {getIcon(AppView.CART_SAVER, currentView === AppView.CART_SAVER)}
+        <span className={textClass(currentView === AppView.CART_SAVER)}>Cart</span>
       </button>
 
       <button onClick={() => onChange(AppView.SPEND_IQ)} className={btnClass}>

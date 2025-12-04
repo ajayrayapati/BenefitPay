@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { AppView, CreditCard } from './types';
 import { CardRepository } from './services/cardRepository';
@@ -11,6 +12,7 @@ import { ResearchView } from './views/ResearchView';
 import { SpendIQView } from './views/SpendIQView';
 import { SpendRecommenderView } from './views/SpendRecommenderView';
 import { BankIQView } from './views/BankIQView';
+import { CartSaverView } from './views/CartSaverView';
 import { HelpView } from './views/HelpView';
 
 export default function App() {
@@ -128,6 +130,7 @@ export default function App() {
         {view === AppView.ADD_CARD && <AddCardView onAdd={addCard} onCancel={() => setView(AppView.WALLET)} />}
         {view === AppView.RECOMMEND && <RecommendView cards={cards} onViewChange={setView} />}
         {view === AppView.RESEARCH && <ResearchView cards={cards} onViewChange={setView} />}
+        {view === AppView.CART_SAVER && <CartSaverView />}
         {view === AppView.SPEND_IQ && <SpendIQView cards={cards} onViewChange={setView} />}
         {view === AppView.MARKET_REC && <SpendRecommenderView onViewChange={setView} />}
         {view === AppView.BANK_IQ && <BankIQView />}

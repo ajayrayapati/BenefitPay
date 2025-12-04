@@ -1,7 +1,7 @@
 
 
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { CardType, CreditCard, RecommendationResult, MarketRecommendation, ProductResearchResult, SpendAnalysisResult, PortfolioAnalysisResult, BankAnalysisResult } from "../types";
+import { CardType, CreditCard, RecommendationResult, MarketRecommendation, ProductResearchResult, SpendAnalysisResult, PortfolioAnalysisResult, BankAnalysisResult, CartAnalysisResult } from "../types";
 
 const MODEL_FAST = 'gemini-2.5-flash';
 
@@ -675,6 +675,70 @@ export const analyzeBankStatements = async (
       return tryParseJson(cleanJson(text)) as BankAnalysisResult;
   } catch (error: any) {
       console.error("Error analyzing bank statements:", error);
+      return null;
+  }
+};
+
+/**
+ * Step 9: Cart Saver - Analyze Shopping Cart Image
+ */
+export const analyzeShoppingCart = async (
+  imageBase64: string,
+  storeName: string
+): Promise<CartAnalysisResult | null> => {
+  const promptText = `
+  Analyze this image of a shopping cart/basket at a store.
+  User Store: "${storeName}".
+
+  TASK:
+  1. Identify all visible products/items in the cart.
+  2. For each identified item:
+     - Estimate the current price at ${storeName}.
+     - Use Google Search to find if a CHEAPER option exists nearby or online (e.g. Walmart, Amazon, Target, Costco).
+     - Calculate potential savings (Current Price - Best Alternative).
+  3. If an item cannot be clearly identified, skip it or mark it.
+  4. If the cart is empty or blurry, return unidentifiedItemsWarning: true.
+
+  Output STRICT JSON:
+  {
+    "storeAnalyzed": "${storeName}",
+    "identifiedItemCount": number,
+    "totalEstimatedSavings": number,
+    "unidentifiedItemsWarning": boolean,
+    "summary": "string (e.g. 'Found 5 items. You could save $12 by buying the electronics online.')",
+    "items": [
+      {
+        "name": "string",
+        "currentStorePrice": number,
+        "bestAlternativeStore": "string",
+        "bestAlternativePrice": number,
+        "potentialSavings": number,
+        "link": "string (search url)"
+      }
+    ]
+  }
+  `;
+
+  const base64Clean = imageBase64.split(',')[1] || imageBase64;
+  const parts = [
+      { text: promptText },
+      { inlineData: { mimeType: 'image/jpeg', data: base64Clean } }
+  ];
+
+  try {
+      const response = await safeGenerateContent(MODEL_FAST, {
+          contents: { parts },
+          config: {
+              tools: [{ googleSearch: {} }]
+          }
+      });
+
+      const text = response.text;
+      if (!text) return null;
+
+      return tryParseJson(cleanJson(text)) as CartAnalysisResult;
+  } catch (error: any) {
+      console.error("Error analyzing cart:", error);
       return null;
   }
 };
