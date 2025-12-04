@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { PortfolioAnalysisResult, AppView } from '../types';
 import { analyzePortfolioAndRecommend } from '../services/geminiService';
@@ -63,6 +64,23 @@ export const SpendRecommenderView: React.FC<{ onViewChange: (v: AppView) => void
                     </p>
 
                     <div className="space-y-6">
+                        {/* Sample Visual */}
+                        <div className="flex justify-center mb-2 gap-2">
+                             {/* Stacked Docs - Scaled Down */}
+                             <div className="w-10 h-14 bg-white border border-gray-200 rounded-lg shadow-sm relative rotate-[-6deg] z-0 flex flex-col p-1 top-1"></div>
+                             <div className="w-10 h-14 bg-gray-50 border border-gray-200 rounded-lg shadow-sm relative flex flex-col p-1.5 z-10">
+                                <div className="h-1 w-4 bg-indigo-900 mb-1 rounded-sm"></div>
+                                <div className="h-0.5 w-full bg-gray-200 mb-0.5 rounded-full"></div>
+                                <div className="h-0.5 w-full bg-gray-200 mb-0.5 rounded-full"></div>
+                                <div className="flex-1 border-t border-gray-100 pt-0.5 mt-1 space-y-0.5">
+                                    <div className="h-0.5 w-full bg-gray-100 rounded"></div>
+                                    <div className="h-0.5 w-full bg-gray-100 rounded"></div>
+                                </div>
+                                <div className="absolute -bottom-2 -right-2 bg-blue-500 text-white text-[5px] font-bold px-1 py-0.5 rounded shadow">VISA</div>
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-center text-gray-400 font-bold uppercase tracking-wide">Multi-Card Statements</p>
+
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Upload Statements (PDF / Image)</label>
                             <div className="relative border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center hover:bg-gray-50 hover:border-blue-400 transition-all group">

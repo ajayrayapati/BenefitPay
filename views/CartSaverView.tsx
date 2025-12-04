@@ -82,6 +82,40 @@ export const CartSaverView: React.FC = () => {
                  Snap a picture of items in your shopping cart(online or merchant store). We'll identify them and check if you can buy them cheaper elsewhere (Online, Walmart, etc.).
               </p>
 
+              {/* Sample Examples */}
+              <div className="mb-6">
+                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Good Examples</h4>
+                 <div className="grid grid-cols-2 gap-3">
+                    {/* Example 1: Physical Cart */}
+                    <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 flex flex-col items-center text-center opacity-80">
+                        <div className="w-full h-12 bg-white rounded-lg border border-dashed border-gray-200 mb-2 relative overflow-hidden flex items-center justify-center">
+                            {/* Stylized Cart - Scaled Down */}
+                            <svg className="w-5 h-5 text-gray-300" fill="currentColor" viewBox="0 0 24 24"><path d="M2.25 2.25a.75.75 0 000 1.5h1.386c.17 0 .318.114.362.278l2.558 9.592a3.752 3.752 0 00-2.806 3.63c0 .414.336.75.75.75h15.75a.75.75 0 000-1.5H5.378A2.25 2.25 0 017.5 15h11.218a.75.75 0 00.674-.421 60.358 60.358 0 002.96-7.228.75.75 0 00-.525-.965A60.864 60.864 0 005.68 4.509l-.232-.867A1.875 1.875 0 003.636 2.25H2.25z" /></svg>
+                            <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-400 rounded-full opacity-50"></div>
+                            <div className="absolute bottom-2 left-2 w-2 h-3 bg-blue-300 rounded opacity-50 rotate-12"></div>
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-500">Physical Cart</span>
+                    </div>
+
+                    {/* Example 2: Online List */}
+                    <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 flex flex-col items-center text-center opacity-80">
+                        <div className="w-full h-12 bg-white rounded-lg border border-dashed border-gray-200 mb-2 relative overflow-hidden flex flex-col p-1 gap-1 justify-center">
+                            {/* Stylized Screen - Scaled Down */}
+                            <div className="w-full h-1 bg-gray-100 rounded-full"></div>
+                            <div className="flex gap-1 items-center">
+                                <div className="w-2 h-2 bg-gray-100 rounded"></div>
+                                <div className="h-1 w-8 bg-gray-100 rounded-full"></div>
+                            </div>
+                            <div className="flex gap-1 items-center">
+                                <div className="w-2 h-2 bg-gray-100 rounded"></div>
+                                <div className="h-1 w-6 bg-gray-100 rounded-full"></div>
+                            </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-500">Online Checkout</span>
+                    </div>
+                 </div>
+              </div>
+
               <div className="space-y-4">
                   <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Current Store</label>

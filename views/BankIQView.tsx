@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { BankAnalysisResult } from '../types';
 import { analyzeBankStatements } from '../services/geminiService';
@@ -52,6 +53,22 @@ export const BankIQView: React.FC = () => {
                     </p>
 
                     <div className="space-y-6">
+                        {/* Sample Visual */}
+                        <div className="flex justify-center mb-2">
+                            <div className="w-12 h-16 bg-gray-50 border border-gray-200 rounded-lg shadow-sm relative flex flex-col p-1.5">
+                                <div className="h-1 w-5 bg-green-700 mb-1 rounded-sm"></div> {/* Bank Logo */}
+                                <div className="h-0.5 w-full bg-gray-200 mb-0.5 rounded-full"></div>
+                                <div className="h-0.5 w-3/4 bg-gray-200 mb-1.5 rounded-full"></div>
+                                <div className="flex-1 border-t border-gray-100 pt-0.5 space-y-0.5">
+                                    <div className="flex justify-between"><div className="w-3 h-0.5 bg-gray-300 rounded"></div><div className="w-3 h-0.5 bg-green-200 rounded"></div></div>
+                                    <div className="flex justify-between"><div className="w-4 h-0.5 bg-gray-300 rounded"></div><div className="w-3 h-0.5 bg-red-200 rounded"></div></div>
+                                    <div className="flex justify-between"><div className="w-3 h-0.5 bg-gray-300 rounded"></div><div className="w-3 h-0.5 bg-green-200 rounded"></div></div>
+                                </div>
+                                <div className="absolute -bottom-2 -right-2 bg-green-600 text-white text-[5px] font-bold px-1 py-0.5 rounded shadow">BANK PDF</div>
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-center text-gray-400 font-bold uppercase tracking-wide">Checking Statement</p>
+
                         <div className="relative border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:bg-gray-50 hover:border-green-400 transition-all group cursor-pointer">
                             <input 
                                 type="file" 
