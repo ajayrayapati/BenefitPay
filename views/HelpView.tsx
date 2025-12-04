@@ -6,7 +6,7 @@ export const HelpView: React.FC = () => {
   return (
     <div className="px-6 py-4 max-w-lg mx-auto w-full">
       <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600 mb-6">
-        How to Use
+        About AI-Smart Pay
       </h1>
 
       <div className="space-y-6 animate-fade-in-up">

@@ -75,55 +75,47 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
     }
   };
 
-  const btnClass = "flex flex-col items-center justify-center flex-1 space-y-1 active:scale-95 transition-transform min-w-[45px]";
+  const btnClass = "flex flex-col items-center justify-center py-2 space-y-1 active:scale-95 transition-transform w-full";
   const textClass = (isActive: boolean) => `text-[8px] sm:text-[9px] font-bold ${isActive ? 'text-blue-600' : 'text-gray-400'}`;
 
+  // Row 1: Home, AI Pick, Add Card, Cart Saver, Product Research
+  const row1 = [
+    { view: AppView.WALLET, label: 'Home' },
+    { view: AppView.RECOMMEND, label: 'AI Pick' },
+    { view: AppView.ADD_CARD, label: 'Card' },
+    { view: AppView.CART_SAVER, label: 'Cart' },
+    { view: AppView.RESEARCH, label: 'Product Research' },
+  ];
+
+  // Row 2: SpendIQ, SpendFit, BankIQ, Help
+  const row2 = [
+    { view: AppView.SPEND_IQ, label: 'SpendIQ' },
+    { view: AppView.MARKET_REC, label: 'SpendFit' },
+    { view: AppView.BANK_IQ, label: 'BankIQ' },
+    { view: AppView.HELP, label: 'About' },
+  ];
+
   return (
-    <div className="fixed top-0 w-full bg-white/95 backdrop-blur-md border-b border-gray-200 pt-safe px-1 flex justify-between items-center z-50 h-[88px] pb-2 shadow-sm overflow-x-auto no-scrollbar">
-      <button onClick={() => onChange(AppView.WALLET)} className={btnClass}>
-        {getIcon(AppView.WALLET, currentView === AppView.WALLET)}
-        <span className={textClass(currentView === AppView.WALLET)}>Home</span>
-      </button>
+    <div className="fixed top-0 w-full bg-white/95 backdrop-blur-md border-b border-gray-200 pt-safe z-50 shadow-sm flex flex-col">
+      {/* Row 1 */}
+      <div className="flex w-full border-b-2 border-gray-300">
+        {row1.map((item) => (
+            <button key={item.view} onClick={() => onChange(item.view)} className={btnClass}>
+                {getIcon(item.view, currentView === item.view)}
+                <span className={textClass(currentView === item.view)}>{item.label}</span>
+            </button>
+        ))}
+      </div>
 
-      <button onClick={() => onChange(AppView.RECOMMEND)} className={btnClass}>
-        {getIcon(AppView.RECOMMEND, currentView === AppView.RECOMMEND)}
-        <span className={textClass(currentView === AppView.RECOMMEND)}>AI Pick</span>
-      </button>
-
-      <button onClick={() => onChange(AppView.ADD_CARD)} className={btnClass}>
-        {getIcon(AppView.ADD_CARD, currentView === AppView.ADD_CARD)}
-        <span className={textClass(currentView === AppView.ADD_CARD)}>Add</span>
-      </button>
-
-      <button onClick={() => onChange(AppView.RESEARCH)} className={btnClass}>
-        {getIcon(AppView.RESEARCH, currentView === AppView.RESEARCH)}
-        <span className={textClass(currentView === AppView.RESEARCH)}>Product</span>
-      </button>
-
-      <button onClick={() => onChange(AppView.CART_SAVER)} className={btnClass}>
-        {getIcon(AppView.CART_SAVER, currentView === AppView.CART_SAVER)}
-        <span className={textClass(currentView === AppView.CART_SAVER)}>Cart</span>
-      </button>
-
-      <button onClick={() => onChange(AppView.SPEND_IQ)} className={btnClass}>
-        {getIcon(AppView.SPEND_IQ, currentView === AppView.SPEND_IQ)}
-        <span className={textClass(currentView === AppView.SPEND_IQ)}>SpendIQ</span>
-      </button>
-      
-      <button onClick={() => onChange(AppView.MARKET_REC)} className={btnClass}>
-        {getIcon(AppView.MARKET_REC, currentView === AppView.MARKET_REC)}
-        <span className={textClass(currentView === AppView.MARKET_REC)}>SpendFit</span>
-      </button>
-
-      <button onClick={() => onChange(AppView.BANK_IQ)} className={btnClass}>
-        {getIcon(AppView.BANK_IQ, currentView === AppView.BANK_IQ)}
-        <span className={textClass(currentView === AppView.BANK_IQ)}>BankIQ</span>
-      </button>
-
-      <button onClick={() => onChange(AppView.HELP)} className={btnClass}>
-        {getIcon(AppView.HELP, currentView === AppView.HELP)}
-        <span className={textClass(currentView === AppView.HELP)}>Help</span>
-      </button>
+      {/* Row 2 - Padded to bring icons closer */}
+      <div className="flex w-full px-8">
+        {row2.map((item) => (
+            <button key={item.view} onClick={() => onChange(item.view)} className={btnClass}>
+                {getIcon(item.view, currentView === item.view)}
+                <span className={textClass(currentView === item.view)}>{item.label}</span>
+            </button>
+        ))}
+      </div>
     </div>
   );
 };

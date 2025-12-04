@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { AppView, CreditCard } from './types';
 import { CardRepository } from './services/cardRepository';
@@ -118,7 +117,8 @@ export default function App() {
     <div className="flex flex-col h-full bg-gradient-to-br from-gray-50 via-white to-blue-50 relative font-sans text-gray-900">
       <TabBar currentView={view} onChange={setView} />
       
-      <main className="flex-1 overflow-y-auto no-scrollbar pt-[90px] pb-6">
+      {/* Adjusted top padding for two-row header */}
+      <main className="flex-1 overflow-y-auto no-scrollbar pt-[150px] pb-6">
         {view === AppView.WALLET && (
           <WalletView 
             cards={cards} 

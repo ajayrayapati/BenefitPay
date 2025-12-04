@@ -79,7 +79,7 @@ export const CartSaverView: React.FC = () => {
        {!result ? (
            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 animate-fade-in-up">
               <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-                 Snap a picture of items in your cart. We'll identify them and check if you can buy them cheaper elsewhere (Online, Walmart, etc.).
+                 Snap a picture of items in your shopping cart(online or merchant store). We'll identify them and check if you can buy them cheaper elsewhere (Online, Walmart, etc.).
               </p>
 
               <div className="space-y-4">
