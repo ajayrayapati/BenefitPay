@@ -60,7 +60,7 @@ export const SpendRecommenderView: React.FC<{ onViewChange: (v: AppView) => void
                     <p className="text-sm text-gray-600 mb-6 leading-relaxed">
                         Upload monthly statements from <strong>one or multiple cards</strong>. 
                         We will analyze your spend month-by-month and find the 
-                        <strong> #1 Best Card</strong> in the market tailored to your lifestyle.
+                        <strong> #1 Best Card</strong> in the market tailored to your lifestyle and estimate potential chashback.
                     </p>
 
                     <div className="space-y-6">
