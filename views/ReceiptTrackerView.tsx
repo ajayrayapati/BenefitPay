@@ -159,7 +159,7 @@ export const ReceiptTrackerView: React.FC = () => {
            <svg className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
            <input 
              type="text" 
-             placeholder="Search items (e.g. Milk, Eggs)..."
+             placeholder="Search items in receipts uploaded prior (e.g. Milk, Eggs)..."
              className="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-4 py-3.5 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"
              value={searchQuery}
              onChange={(e) => setSearchQuery(e.target.value)}
