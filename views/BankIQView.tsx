@@ -14,7 +14,7 @@ export const BankIQView: React.FC = () => {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             // Filter only PDFs
-            const validFiles = Array.from(e.target.files).filter(f => f.type === 'application/pdf');
+            const validFiles = Array.from(e.target.files).filter((f: File) => f.type === 'application/pdf');
             if (validFiles.length < e.target.files.length) {
                 alert("Only PDF bank statements are supported.");
             }

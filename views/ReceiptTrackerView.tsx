@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Receipt } from '../types';
 import { parseReceipt } from '../services/geminiService';
@@ -78,10 +79,15 @@ export const ReceiptTrackerView: React.FC = () => {
       try {
           const parsed = await parseReceipt(base64);
           if (parsed) {
+              let displayDate = parsed.date;
+              if (!displayDate || displayDate === 'null' || displayDate === 'N/A') {
+                  displayDate = `${new Date().toLocaleDateString()} (uploaded)`;
+              }
+
               const newReceipt: Receipt = {
                   id: crypto.randomUUID(),
                   storeName: parsed.storeName || 'Unknown Store',
-                  date: parsed.date || new Date().toLocaleDateString(),
+                  date: displayDate,
                   totalAmount: parsed.totalAmount || 0,
                   items: parsed.items || [],
                   imageBase64: base64,

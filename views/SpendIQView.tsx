@@ -14,7 +14,7 @@ export const SpendIQView: React.FC<{ cards: CreditCard[], onViewChange: (v: AppV
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             // Only accept PDFs per requirements
-            const validFiles = Array.from(e.target.files).filter(f => f.type === 'application/pdf');
+            const validFiles = Array.from(e.target.files).filter((f: File) => f.type === 'application/pdf');
             if (validFiles.length < e.target.files.length) {
                 alert("Only PDF files are supported for optimized analysis.");
             }

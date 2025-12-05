@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { CardType, CreditCard, RecommendationResult, MarketRecommendation, ProductResearchResult, SpendAnalysisResult, PortfolioAnalysisResult, BankAnalysisResult, CartAnalysisResult, Receipt } from "../types";
 
@@ -750,14 +751,14 @@ export const parseReceipt = async (imageBase64: string): Promise<Partial<Receipt
     
     TASK:
     1. Extract the Store/Merchant Name.
-    2. Extract the Date of transaction.
+    2. Extract the Date of transaction. If not found, return null.
     3. Extract the Total Amount.
     4. Extract EVERY single line item name into a list (this is used for searching).
     
     Output STRICT JSON:
     {
       "storeName": "string",
-      "date": "string (YYYY-MM-DD or readable format)",
+      "date": "string (YYYY-MM-DD or readable format) or null",
       "totalAmount": number,
       "items": ["string (Item 1)", "string (Item 2)", "string (Item 3)..."]
     }
