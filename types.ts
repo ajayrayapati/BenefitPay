@@ -16,6 +16,7 @@ export enum AppView {
   MARKET_REC = 'MARKET_REC',
   BANK_IQ = 'BANK_IQ',
   CART_SAVER = 'CART_SAVER',
+  RECEIPT_TRACKER = 'RECEIPT_TRACKER',
   HELP = 'HELP'
 }
 
@@ -216,4 +217,15 @@ export interface CartAnalysisResult {
   items: CartItemAnalysis[];
   unidentifiedItemsWarning: boolean; // True if some items looked blurry or unidentifiable
   summary: string;
+}
+
+// --- RECEIPT TRACKER TYPES ---
+export interface Receipt {
+    id: string;
+    storeName: string;
+    date: string;
+    totalAmount: number;
+    items: string[]; // List of items found on receipt for searching
+    imageBase64: string;
+    timestamp: number;
 }

@@ -1,7 +1,6 @@
 
-
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { CardType, CreditCard, RecommendationResult, MarketRecommendation, ProductResearchResult, SpendAnalysisResult, PortfolioAnalysisResult, BankAnalysisResult, CartAnalysisResult } from "../types";
+import { CardType, CreditCard, RecommendationResult, MarketRecommendation, ProductResearchResult, SpendAnalysisResult, PortfolioAnalysisResult, BankAnalysisResult, CartAnalysisResult, Receipt } from "../types";
 
 const MODEL_FAST = 'gemini-2.5-flash';
 
@@ -740,4 +739,46 @@ export const analyzeShoppingCart = async (
       console.error("Error analyzing cart:", error);
       return null;
   }
+};
+
+/**
+ * Step 10: Receipt Tracker - Parse Receipt Image
+ */
+export const parseReceipt = async (imageBase64: string): Promise<Partial<Receipt> | null> => {
+    const promptText = `
+    Analyze this receipt image.
+    
+    TASK:
+    1. Extract the Store/Merchant Name.
+    2. Extract the Date of transaction.
+    3. Extract the Total Amount.
+    4. Extract EVERY single line item name into a list (this is used for searching).
+    
+    Output STRICT JSON:
+    {
+      "storeName": "string",
+      "date": "string (YYYY-MM-DD or readable format)",
+      "totalAmount": number,
+      "items": ["string (Item 1)", "string (Item 2)", "string (Item 3)..."]
+    }
+    `;
+
+    const base64Clean = imageBase64.split(',')[1] || imageBase64;
+    const parts = [
+        { text: promptText },
+        { inlineData: { mimeType: 'image/jpeg', data: base64Clean } }
+    ];
+
+    try {
+        const response = await safeGenerateContent(MODEL_FAST, {
+            contents: { parts }
+        });
+        
+        const text = response.text;
+        if (!text) return null;
+        return tryParseJson(cleanJson(text)) as Partial<Receipt>;
+    } catch (e) {
+        console.error("Error parsing receipt", e);
+        return null;
+    }
 };

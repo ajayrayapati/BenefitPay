@@ -12,6 +12,7 @@ import { SpendIQView } from './views/SpendIQView';
 import { SpendRecommenderView } from './views/SpendRecommenderView';
 import { BankIQView } from './views/BankIQView';
 import { CartSaverView } from './views/CartSaverView';
+import { ReceiptTrackerView } from './views/ReceiptTrackerView';
 import { HelpView } from './views/HelpView';
 
 export default function App() {
@@ -134,6 +135,7 @@ export default function App() {
         {view === AppView.SPEND_IQ && <SpendIQView cards={cards} onViewChange={setView} />}
         {view === AppView.MARKET_REC && <SpendRecommenderView onViewChange={setView} />}
         {view === AppView.BANK_IQ && <BankIQView />}
+        {view === AppView.RECEIPT_TRACKER && <ReceiptTrackerView />}
         {view === AppView.HELP && <HelpView />}
       </main>
 

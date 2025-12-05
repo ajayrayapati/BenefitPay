@@ -1,9 +1,10 @@
 
-import { CreditCard, CardDocument } from '../types';
+import { CreditCard, CardDocument, Receipt } from '../types';
 
 const DB_NAME = 'AISmartPayDB';
-const DB_VERSION = 1;
-const STORE_NAME = 'cards';
+const DB_VERSION = 2; // Upgraded version for Receipts
+const STORE_CARDS = 'cards';
+const STORE_RECEIPTS = 'receipts';
 const LOCAL_BACKUP_KEY = 'ai_smart_pay_backup_lite';
 
 // Helper to strip heavy Base64 content from documents for LocalStorage backup
@@ -38,8 +39,14 @@ export const CardRepository = {
       
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        // Create Cards Store
+        if (!db.objectStoreNames.contains(STORE_CARDS)) {
+          db.createObjectStore(STORE_CARDS, { keyPath: 'id' });
+        }
+        // Create Receipts Store
+        if (!db.objectStoreNames.contains(STORE_RECEIPTS)) {
+            const receiptStore = db.createObjectStore(STORE_RECEIPTS, { keyPath: 'id' });
+            receiptStore.createIndex('timestamp', 'timestamp', { unique: false });
         }
       };
     });
@@ -52,8 +59,8 @@ export const CardRepository = {
     try {
       const db = await CardRepository.getDB();
       dbCards = await new Promise<CreditCard[]>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readonly');
-        const store = tx.objectStore(STORE_NAME);
+        const tx = db.transaction(STORE_CARDS, 'readonly');
+        const store = tx.objectStore(STORE_CARDS);
         const request = store.getAll();
         
         request.onsuccess = () => resolve(request.result || []);
@@ -79,8 +86,8 @@ export const CardRepository = {
     // 1. Save to IndexedDB
     const db = await CardRepository.getDB();
     await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
+      const tx = db.transaction(STORE_CARDS, 'readwrite');
+      const store = tx.objectStore(STORE_CARDS);
       const request = store.add(card);
       request.onsuccess = () => resolve();
       request.onerror = () => reject("Error adding card");
@@ -93,8 +100,8 @@ export const CardRepository = {
   updateCard: async (card: CreditCard): Promise<void> => {
     const db = await CardRepository.getDB();
     await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
+      const tx = db.transaction(STORE_CARDS, 'readwrite');
+      const store = tx.objectStore(STORE_CARDS);
       const request = store.put(card);
       request.onsuccess = () => resolve();
       request.onerror = () => reject("Error updating card");
@@ -106,8 +113,8 @@ export const CardRepository = {
   deleteCard: async (id: string): Promise<void> => {
     const db = await CardRepository.getDB();
     await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
+      const tx = db.transaction(STORE_CARDS, 'readwrite');
+      const store = tx.objectStore(STORE_CARDS);
       const request = store.delete(id);
       request.onsuccess = () => resolve();
       request.onerror = () => reject("Error deleting card");
@@ -116,14 +123,58 @@ export const CardRepository = {
     await CardRepository.syncToLocalStorage();
   },
 
+  // --- RECEIPT METHODS ---
+  addReceipt: async (receipt: Receipt): Promise<void> => {
+    const db = await CardRepository.getDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_RECEIPTS, 'readwrite');
+      const store = tx.objectStore(STORE_RECEIPTS);
+      const request = store.add(receipt);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject("Error adding receipt");
+    });
+  },
+
+  getAllReceipts: async (): Promise<Receipt[]> => {
+    try {
+        const db = await CardRepository.getDB();
+        return await new Promise<Receipt[]>((resolve, reject) => {
+            if (!db.objectStoreNames.contains(STORE_RECEIPTS)) {
+                resolve([]);
+                return;
+            }
+            const tx = db.transaction(STORE_RECEIPTS, 'readonly');
+            const store = tx.objectStore(STORE_RECEIPTS);
+            // Get by timestamp index to show newest first? Or sort manually.
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result || []);
+            request.onerror = () => reject("Error fetching receipts");
+        });
+    } catch (e) {
+        console.warn("Receipt DB access failed", e);
+        return [];
+    }
+  },
+
+  deleteReceipt: async (id: string): Promise<void> => {
+      const db = await CardRepository.getDB();
+      await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(STORE_RECEIPTS, 'readwrite');
+          const store = tx.objectStore(STORE_RECEIPTS);
+          const request = store.delete(id);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject("Error deleting receipt");
+      });
+  },
+
   // Internal helper to keep LocalStorage in sync
   syncToLocalStorage: async () => {
     try {
       const db = await CardRepository.getDB();
       // CRITICAL FIX: Properly handle IDBRequest instead of casting directly
       const allCards = await new Promise<CreditCard[]>((resolve) => {
-         const tx = db.transaction(STORE_NAME, 'readonly');
-         const request = tx.objectStore(STORE_NAME).getAll();
+         const tx = db.transaction(STORE_CARDS, 'readonly');
+         const request = tx.objectStore(STORE_CARDS).getAll();
          request.onsuccess = () => resolve(request.result || []);
          request.onerror = () => resolve([]);
       });
@@ -140,6 +191,9 @@ export const CardRepository = {
   exportData: async (): Promise<string> => {
     try {
         const cards = await CardRepository.getAll();
+        // Export receipts as well? Might be too large for JSON string if many images.
+        // For now, keep backup focused on Cards logic as per original scope, 
+        // or add receipts but warn about size.
         return JSON.stringify({
             version: DB_VERSION,
             cards,
@@ -157,8 +211,8 @@ export const CardRepository = {
           if(data && Array.isArray(data.cards)) {
               const db = await CardRepository.getDB();
               await new Promise((resolve) => {
-                  const tx = db.transaction(STORE_NAME, 'readwrite');
-                  const store = tx.objectStore(STORE_NAME);
+                  const tx = db.transaction(STORE_CARDS, 'readwrite');
+                  const store = tx.objectStore(STORE_CARDS);
                   store.clear(); // Overwrite
                   data.cards.forEach((card: CreditCard) => store.add(card));
                   tx.oncomplete = () => resolve(true);
@@ -180,9 +234,9 @@ export const CardRepository = {
   clearAll: async (): Promise<void> => {
       const db = await CardRepository.getDB();
       await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        store.clear();
+        const tx = db.transaction([STORE_CARDS, STORE_RECEIPTS], 'readwrite');
+        tx.objectStore(STORE_CARDS).clear();
+        tx.objectStore(STORE_RECEIPTS).clear();
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject("Error clearing DB");
       });

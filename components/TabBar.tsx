@@ -66,6 +66,12 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
                 <path d="M2.25 2.25a.75.75 0 000 1.5h1.386c.17 0 .318.114.362.278l2.558 9.592a3.752 3.752 0 00-2.806 3.63c0 .414.336.75.75.75h15.75a.75.75 0 000-1.5H5.378A2.25 2.25 0 017.5 15h11.218a.75.75 0 00.674-.421 60.358 60.358 0 002.96-7.228.75.75 0 00-.525-.965A60.864 60.864 0 005.68 4.509l-.232-.867A1.875 1.875 0 003.636 2.25H2.25zM3.75 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zM16.5 20.25a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" />
             </svg>
         );
+      case AppView.RECEIPT_TRACKER:
+        return (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${color}`}>
+                <path fillRule="evenodd" d="M3 3.75A.75.75 0 013.75 3h16.5a.75.75 0 01.75.75v16.5a.75.75 0 01-.75.75H3.75a.75.75 0 01-.75-.75V3.75zM12 9a.75.75 0 01.75-.75h4.5a.75.75 0 010 1.5h-4.5A.75.75 0 0112 9zm0 3.75a.75.75 0 01.75-.75h4.5a.75.75 0 010 1.5h-4.5a.75.75 0 01-.75-.75zM6.75 9a.75.75 0 01.75-.75h.008a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V9zm0 3.75a.75.75 0 01.75-.75h.008a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75v-.008zM6 16.5a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H6.75a.75.75 0 01-.75-.75z" clipRule="evenodd" />
+            </svg>
+        );
       case AppView.HELP:
         return (
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={`w-6 h-6 ${color}`}>
@@ -87,11 +93,12 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
     { view: AppView.RESEARCH, label: 'Product Research' },
   ];
 
-  // Row 2: SpendIQ, SpendFit, BankIQ, Help
+  // Row 2: SpendIQ, SpendFit, BankIQ, Receipts, Help
   const row2 = [
     { view: AppView.SPEND_IQ, label: 'SpendIQ' },
     { view: AppView.MARKET_REC, label: 'SpendFit' },
     { view: AppView.BANK_IQ, label: 'BankIQ' },
+    { view: AppView.RECEIPT_TRACKER, label: 'Receipts' },
     { view: AppView.HELP, label: 'About' },
   ];
 
@@ -108,7 +115,7 @@ export const TabBar: React.FC<TabBarProps> = ({ currentView, onChange }) => {
       </div>
 
       {/* Row 2 - Padded to bring icons closer */}
-      <div className="flex w-full px-8">
+      <div className="flex w-full px-4 sm:px-8">
         {row2.map((item) => (
             <button key={item.view} onClick={() => onChange(item.view)} className={btnClass}>
                 {getIcon(item.view, currentView === item.view)}
